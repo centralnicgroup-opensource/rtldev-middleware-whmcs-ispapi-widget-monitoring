@@ -1,0 +1,52 @@
+{
+    "name": "whmcs-ispapi-widget-monitoring",
+    "description": "WHMCS ISPAPI Monitoring Dashboard Widget",
+    "version": "0.0.0-development",
+    "private": true,
+    "author": {
+        "name": "Kai Schwarz",
+        "email": "kschwarz@hexonet.net"
+    },
+    "license": "MIT",
+    "engines": {
+        "node": ">=10.18.0"
+    },
+    "homepage": "https://github.com/hexonet/whmcs-ispapi-widget-monitoring",
+    "repository": "github:hexonet/whmcs-ispapi-widget-monitoring",
+    "bugs": "https://github.com/hexonet/whmcs-ispapi-widget-monitoring/issues",
+    "maintainers": [
+        {
+            "name": "Kai Schwarz",
+            "url": "https://github.com/papakai"
+        }
+    ],
+    "keywords": [
+        "whmcs",
+        "web host automation platform",
+        "dashboard",
+        "widget",
+        "monitoring",
+        "hexonet",
+        "ispapi",
+        "domain",
+        "isp",
+        "ssl",
+        "cert",
+        "dns",
+        "backorder",
+        "premium",
+        "preregistration",
+        "registration",
+        "application"
+    ],
+    "devDependencies": {
+        "npm": ">=6.13.4",
+        "semantic-release": "^17.0.2",
+        "@hexonet/semantic-release-github-whmcsbase-config": "^1.0.0"
+    },
+    "scripts": {
+        "phpCompatibility": "./scripts/phpcompatibility.sh",
+        "codeCheck": "phpcs --standard=PSR12 -s -q -n --colors ispapi_monitoring.php",
+        "codeFix": "phpcbf --standard=PSR12 -q ispapi_monitoring.php"
+    }
+}
