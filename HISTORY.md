@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.1.0...v1.1.1) (2020-09-25)
+
+
+### Bug Fixes
+
+* **widget:** to consider ispapi registrar / removed test cases ([29c27ad](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/29c27ad7d6f772b493fbea049829847458c5c155))
+
 # [1.1.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.0.0...v1.1.0) (2020-09-25)
 
 
