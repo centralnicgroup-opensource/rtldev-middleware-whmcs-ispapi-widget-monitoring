@@ -87,11 +87,13 @@ EOF;
     {
         return <<<EOF
                 <div class="widget-content-padded widget-billing">
-                    <div class="color-greenk">$msg</div>
+                    <div class="item text-center">
+                        <div class="data color-green">$msg</div>
+                        <div class="note">Check Result</div>
+                    </div>
                 </div>
 EOF;
     }
-
 
     /**
      * Fetch data that will be provided to generateOutput method

@@ -18,17 +18,19 @@ Monitoring of Domain Data Differences in WHMCS and the HEXONET API like
 
 ## Resources ##
 
-* [Usage Guide](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/wiki/Usage-Guide)
 * [Release Notes](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/releases)
-* [Development Guide](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/wiki/Development-Guide)
 
-**If you have any issue related to this module, please take a look at the FAQs [here](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/wiki/FAQs). If you can't find help in the FAQs feel free to contact our support team.**
+**If you have any issue related to this module, feel free to open an github issue or to contact our support team.**
 
 ## Usage Guide ##
 
+### Installation / Upgrade ###
+
 Download the ZIP archive including the latest release version [here](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/raw/master/whmcs-ispapi-widget-monitoring-latest.zip).
 
-Find our Guide [here](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/wiki/Usage-Guide).
+Extract the `ispapi_monitoring.php` into folder `/modules/widgets` of your WHMCS instance.
+
+### Using that Widget ###
 
 ## Minimum Requirements ##
 
