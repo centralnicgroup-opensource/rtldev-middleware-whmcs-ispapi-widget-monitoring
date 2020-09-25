@@ -7,7 +7,7 @@ Please note we have a code of conduct, please follow it in all your interactions
 
 ## Pull Request Process
 
-Read [here](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/wiki/Development-Guide#pull-request-pr-procedure).
+Feel free to work on your custom changes and address the PR to us.
 
 ## Code of Conduct
 

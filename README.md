@@ -37,6 +37,7 @@ This is how it looks like in case everything is fine:
 
 Otherwise cases are listed accordingly and providing a wizard to get them fixed:
 ![someissues](https://user-images.githubusercontent.com/229425/94284611-eace2100-ff52-11ea-985e-d90641fe2b00.png)
+
 Click on `Show me!` to dive into details:
 ![wizard](https://user-images.githubusercontent.com/229425/94284931-5a441080-ff53-11ea-9bb7-6e68b549fca2.png)
 
@@ -52,7 +53,7 @@ This Dashboard Widget is only compatible with the [ISPAPI registrar module](http
 
 ## Contributing ##
 
-Please read [our development guide](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/wiki/Development-Guide) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [our contributing guide](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/blob/master/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Authors ##
 
