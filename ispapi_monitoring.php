@@ -45,11 +45,11 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
         $r = Ispapi::call([
             "COMMAND" => "QueryDomainList",
             "X-ACCEPT-WHOISTRUSTEE-TAC" => 1
-        ], null, 'hexonet');
-        if ($r["CODE"] !== "200") {
+        ]);
+        if ($r["CODE"] !== "200" || !$r["PROPERTY"]["COUNT"][0]) {
             return [];
         }
-        return $r["PROPERTY"]["OBJECTID"];
+        return $r["PROPERTY"]["DOMAIN"];
     }
 
     /**
@@ -59,7 +59,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     private function getIdProtectedDomainsWHMCS()
     {
         return DB::table("tbldomains")->where([
-            "registrar" => "hexonet",
+            "registrar" => "ispapi",
             "idprotection" => 1
         ])->pluck("domain");
     }
@@ -168,12 +168,12 @@ EOF;
                     "COMMAND" => "ModifyDomain",
                     "DOMAIN" => $item,
                     "X-ACCEPT-WHOISTRUSTEE-TAC" => 0
-                ], null, "hexonet");
+                ]);
                 if ($r["CODE"] == "200") {//to get domain list cache refreshed
                     Ispapi::call([
                         "COMMAND" => "StatusDomain",
                         "DOMAIN" => $item
-                    ], null, "hexonet");
+                    ]);
                 }
                 if ($idx < $max) {
                     sleep(1);

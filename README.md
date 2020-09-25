@@ -35,7 +35,13 @@ Extract the `ispapi_monitoring.php` into folder `/modules/widgets` of your WHMCS
 This is how it looks like in case everything is fine:
 ![allfine](https://user-images.githubusercontent.com/229425/94283804-c45bb600-ff51-11ea-9097-89e2067cd147.png)
 
-Otherwise cases are listed accordingly.
+Otherwise cases are listed accordingly and providing a wizard to get them fixed:
+![someissues](https://user-images.githubusercontent.com/229425/94284611-eace2100-ff52-11ea-985e-d90641fe2b00.png)
+Click on `Show me!` to dive into details:
+![wizard](https://user-images.githubusercontent.com/229425/94284931-5a441080-ff53-11ea-9bb7-6e68b549fca2.png)
+
+Here you can download the affected items as CSV list for your reference (and forwarding to us, if necessary).
+By clicking on `Fix this!` the widget takes care of fixing the items.
 
 ## Minimum Requirements ##
 
