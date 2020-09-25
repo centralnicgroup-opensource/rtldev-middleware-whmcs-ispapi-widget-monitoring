@@ -34,7 +34,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     protected $cache = false;
     protected $cacheExpiry = 120;
     protected $requiredPermission = '';
-    const VERSION = "0.0.0";
+    const VERSION = "1.0.0";
 
     /**
      * get list of domains with active whois privacy service from HEXONET API
