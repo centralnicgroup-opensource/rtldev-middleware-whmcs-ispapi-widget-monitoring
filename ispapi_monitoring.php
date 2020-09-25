@@ -1,12 +1,5 @@
 <?php
 
-// phpcs:disable PSR1.Classes.ClassDeclaration.MultipleClasses
-namespace WHMCS\Module\Widget;
-
-use App;
-use Illuminate\Database\Capsule\Manager as DB;
-use WHMCS\Module\Registrar\Ispapi\Ispapi;
-
 /**
  * WHMCS ISPAPI Account Dashboard Widget
  *
@@ -17,6 +10,13 @@ use WHMCS\Module\Registrar\Ispapi\Ispapi;
  * @copyright Copyright (c) Kai Schwarz, HEXONET GmbH, 2019
  * @license https://github.com/hexonet/whmcs-ispapi-widget-monitoring/blob/master/LICENSE/ MIT License
  */
+
+// phpcs:disable PSR1.Classes.ClassDeclaration.MultipleClasses
+namespace WHMCS\Module\Widget;
+
+use App;
+use Illuminate\Database\Capsule\Manager as DB;
+use WHMCS\Module\Registrar\Ispapi\Ispapi;
 
 add_hook('AdminHomeWidgets', 1, function () {
     return new IspapiMonitoringWidget();
