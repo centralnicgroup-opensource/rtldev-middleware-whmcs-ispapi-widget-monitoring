@@ -32,6 +32,11 @@ Extract the `ispapi_monitoring.php` into folder `/modules/widgets` of your WHMCS
 
 ### Using that Widget ###
 
+This is how it looks like in case everything is fine:
+![allfine](https://user-images.githubusercontent.com/229425/94283804-c45bb600-ff51-11ea-9097-89e2067cd147.png)
+
+Otherwise cases are listed accordingly.
+
 ## Minimum Requirements ##
 
 For the latest WHMCS minimum system requirements, please refer to
