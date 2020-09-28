@@ -121,7 +121,8 @@ EOF;
     private function getCaseLabel($id, $items, $count)
     {
         if ($id === "wpapicase") {
-             return "Domains found with Whois Privacy Service active only on Registrar-side.";
+            $label = "Domain" . ((count($items) === 1) ? "" : "s");
+            return "<b>{$label} found with ID Protection Service active only on Registrar-side.</b>";
         }
         return "";
     }
@@ -129,7 +130,8 @@ EOF;
     private function getCaseDescription($id, $count)
     {
         if ($id === "wpapicase") {
-             return "We found <u>{$count} Domain Names</u> with active ID Protection in Registrar's Systems, but inactive in WHMCS. Therefore, your clients are using that service, but they are not getting invoiced for it by WHMCS. Using the below button `Fix this!` disables that service for the listed domain names in Registrar's Systems.";
+            $label = "Domain" . (($count === 1) ? "" : "Name");
+            return "We found <b>{$count} {$label}</b> with active ID Protection in HEXONET's System, but inactive in WHMCS. Therefore, your clients are using that service, but they are not getting invoiced for it by WHMCS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to disable that service for the listed domain names in HEXONET's System.";
         }
         return "";
     }
@@ -143,24 +145,16 @@ EOF;
         return <<<EOF
             <div class="alert alert-danger" id="{$id}">
                 <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#monitModal" data-case="{$id}" data-count="{$count}" data-items="{$items}" data-label="{$label}" data-descr="{$descr}">
-                    Show me!
+                    Details!
                 </button>
                 {$count} {$label}
             </div>
 EOF;
     }
 
-    private function fixCase($case)
+    private function fixCase($case, $items)
     {
-        $items = [];
-        $max = 0;
-        do {
-            $item = App::getFromRequest("item" . $max);
-            if ($item) {
-                $items[] = $item;
-                $max++;
-            }
-        } while ($item);
+        $max = count($items);
 
         if ($case === "wpapicase") {
             foreach ($items as $idx => $item) {
@@ -180,6 +174,8 @@ EOF;
                 }
             }
         }
+
+        return $this->getData();
     }
 
     /**
@@ -191,7 +187,10 @@ EOF;
     {
         $case = App::getFromRequest('fixit');
         if ($case) {
-            $this->fixCase($case);
+            $items = isset($data[$case]) ? $data[$case] : [];
+            if (!empty($items)){
+                $data = $this->fixCase($case, $items);
+            }
         }
         if (empty($data)) {
             return $this->returnOk("No issues detected.");
@@ -217,10 +216,6 @@ EOF;
             <label for="recipient-name" class="col-form-label">Details:</label>
             <p class="description"></p>
           </div>
-          <div class="form-group">
-            <label for="message-text" class="col-form-label">Affected:</label>
-            <textarea class="form-control" id="affected-items" rows="10" readonly></textarea>
-          </div>
         </form>
       </div>
       <div class="modal-footer">
@@ -235,17 +230,11 @@ EOF;
 $('#monitModal').off().on('show.bs.modal', function (event) {
   const button = $(event.relatedTarget)
   const modal = $(this)
-  const items = button.data('items')
-  const itemsArr = items.split(', ')
-  modal.find('.modal-title').text(button.data('label'))
+  const itemsArr = button.data('items').split(', ')
+  modal.find('.modal-title').html(button.data('label'))
   modal.find('.modal-body p.description').html(button.data('descr'))
-  modal.find('.modal-body textarea').val(items)
   $('#monitModalSubmit').off().click(function() {
-      let url =  'fixit=' + button.data('case');
-      for (let i=0; i<itemsArr.length; i++){
-          url += ('&item' + i + '=' + encodeURIComponent(itemsArr[i]))
-      }
-      refreshWidget('IspapiMonitoringWidget', url)
+      refreshWidget('IspapiMonitoringWidget', 'fixit=' + button.data('case'))
       $('#monitModalDismiss').click()
   })
   $('#monitModalDownload').css('display', '')
