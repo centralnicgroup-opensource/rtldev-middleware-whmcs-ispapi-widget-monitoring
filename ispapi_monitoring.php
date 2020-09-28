@@ -188,7 +188,7 @@ EOF;
         $case = App::getFromRequest('fixit');
         if ($case) {
             $items = isset($data[$case]) ? $data[$case] : [];
-            if (!empty($items)){
+            if (!empty($items)) {
                 $data = $this->fixCase($case, $items);
             }
         }
