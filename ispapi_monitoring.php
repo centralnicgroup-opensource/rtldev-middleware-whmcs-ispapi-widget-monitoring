@@ -154,8 +154,6 @@ EOF;
 
     private function fixCase($case, $items)
     {
-        $max = count($items);
-
         if ($case === "wpapicase") {
             foreach ($items as $idx => $item) {
                 $r = Ispapi::call([
@@ -164,17 +162,16 @@ EOF;
                     "X-ACCEPT-WHOISTRUSTEE-TAC" => 0
                 ]);
                 if ($r["CODE"] == "200") {//to get domain list cache refreshed
-                    Ispapi::call([
+                    $r = Ispapi::call([
                         "COMMAND" => "StatusDomain",
                         "DOMAIN" => $item
                     ]);
                 }
-                if ($idx < $max) {
-                    sleep(1);
+                if (preg_match("/Service temporarily locked; usage exceeded/i", $r["DESCRIPTION"])) {
+                    break;// stop further processing, hard quota reached.
                 }
             }
         }
-
         return $this->getData();
     }
 
