@@ -42,6 +42,8 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
      */
     private function getIdProtectedDomainsAPI()
     {
+        return array_fill(0, 10, "101works.com");
+
         $r = Ispapi::call([
             "COMMAND" => "QueryDomainList",
             "X-ACCEPT-WHOISTRUSTEE-TAC" => 1
@@ -118,61 +120,62 @@ EOF;
         return $data;
     }
 
-    private function getCaseLabel($id, $items, $count)
+    private function getCaseLabel($case, $items, $count)
     {
-        if ($id === "wpapicase") {
+        if ($case === "wpapicase") {
             $label = "Domain" . ((count($items) === 1) ? "" : "s");
             return "<b>{$label} found with ID Protection Service active only on Registrar-side.</b>";
         }
         return "";
     }
 
-    private function getCaseDescription($id, $count)
+    private function getCaseDescription($case, $count)
     {
-        if ($id === "wpapicase") {
+        if ($case === "wpapicase") {
             $label = "Domain" . (($count === 1) ? "" : "Name");
             return "We found <b>{$count} {$label}</b> with active ID Protection in HEXONET's System, but inactive in WHMCS. Therefore, your clients are using that service, but they are not getting invoiced for it by WHMCS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to disable that service for the listed domain names in HEXONET's System.";
         }
         return "";
     }
 
-    private function getCaseBlock($id, $rows)
+    private function getCaseBlock($case, $rows)
     {
         $count = count($rows);
         $items = implode(", ", $rows);
-        $label = $this->getCaseLabel($id, $items, $count);
-        $descr = $this->getCaseDescription($id, $count);
+        $label = $this->getCaseLabel($case, $items, $count);
+        $descr = $this->getCaseDescription($case, $count);
         return <<<EOF
-            <div class="alert alert-danger" id="{$id}">
-                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#monitModal" data-case="{$id}" data-count="{$count}" data-items="{$items}" data-label="{$label}" data-descr="{$descr}">
+            <div class="alert alert-danger" id="{$case}">
+                <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#monitModal" data-case="{$case}" data-count="{$count}" data-items="{$items}" data-label="{$label}" data-descr="{$descr}">
                     Details!
                 </button>
-                {$count} {$label}
+                <b>{$count}</b> {$label}
             </div>
 EOF;
     }
 
-    private function fixCase($case, $items)
+    private function fixCase($case, $item)
     {
         if ($case === "wpapicase") {
-            foreach ($items as $idx => $item) {
-                $r = Ispapi::call([
-                    "COMMAND" => "ModifyDomain",
-                    "DOMAIN" => $item,
-                    "X-ACCEPT-WHOISTRUSTEE-TAC" => 0
+            $r1 = Ispapi::call([
+                "COMMAND" => "ModifyDomain",
+                "DOMAIN" => $item,
+                "X-ACCEPT-WHOISTRUSTEE-TAC" => 0
+            ]);
+            if ($r1["CODE"] == "200") {
+                Ispapi::call([
+                    "COMMAND" => "StatusDomain",
+                    "DOMAIN" => $item
                 ]);
-                if ($r["CODE"] == "200") {//to get domain list cache refreshed
-                    $r = Ispapi::call([
-                        "COMMAND" => "StatusDomain",
-                        "DOMAIN" => $item
-                    ]);
-                }
-                if (preg_match("/Service temporarily locked; usage exceeded/i", $r["DESCRIPTION"])) {
-                    break;// stop further processing, hard quota reached.
-                }
             }
+            return [
+                "success" => $r1["CODE"] === "200",
+                "msg" => $r1["CODE"] . " " . $r1["DESCRIPTION"],
+                "case" => $case,
+                "item" => $item
+            ];
         }
-        return $this->getData();
+        return [];
     }
 
     /**
@@ -182,20 +185,19 @@ EOF;
      */
     public function generateOutput($data)
     {
+        $output = "";
         $case = App::getFromRequest('fixit');
-        if ($case) {
-            $items = isset($data[$case]) ? $data[$case] : [];
-            if (!empty($items)) {
-                $data = $this->fixCase($case, $items);
-            }
+        $item = App::getFromRequest('item');
+        if ($case && $item) {
+            return $this->fixCase($case, $item);
         }
         if (empty($data)) {
             return $this->returnOk("No issues detected.");
         }
-        $output = "";
         foreach ($data as $key => $rows) {
             $output .= $this->getCaseBlock($key, $rows);
         }
+
         return <<<EOF
 <div class="widget-content-padded ispapi-monitoring-items">{$output}</div>
 <div class="modal fade" id="monitModal" tabindex="-1" role="dialog" aria-labelledby="monitModalLabel" aria-hidden="true">
@@ -224,6 +226,76 @@ EOF;
   </div>
 </div>
 <script>
+const ispapidata = {}
+
+function refreshMyWidget(widgetName, requestString, fcase, item) {
+    WHMCS.http.jqClient.post(
+        WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=' + widgetName + '&' + requestString),
+        function(data) {},
+        'json'
+    ).always(function(data){
+        // {
+        //      success: true
+        //      widgetOutput: "{"success":false,"case":"wpapicase","item":"101works.com","msg":"545 Object not found"}"
+        // }
+        const pgb = $('#' + fcase + 'pgb .progess-bar')
+        const valnow = parseInt(pgb.attr('aria-valuenow'), 10) + 1
+        pgb.attr('aria-valuenow', valnow)
+        pgb.css('width', valnow + '%')
+        pgb.html(valnow + '%')
+
+        const nextitem = ispapidata[fcase].shift()
+        if (nextitem){
+            refreshMyWidget(
+                widgetName, 
+                'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
+                fcase,
+                nextitem
+            )
+        } else {
+            stopProcessing(fcase)
+        }
+    })
+}
+
+function initProcessing(fcase, max) {
+    const id = fcase + 'pgb';
+    let eL = $('#' + id);
+    if (eL.length > 0){
+        return;
+    }
+    eL = $('<div class="progress" id="' + id + '" style="height:1px">' +
+            '<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="' + max + '">0%</div>' +
+        '</div>');
+    eL.insertAfter('#' + fcase)
+}
+function startProcessing(fcase, items){
+    if (ispapidata.hasOwnProperty(fcase)){
+        return
+    }
+    ispapidata[fcase] = items
+    const data = {
+        case: fcase,
+        max: items.length
+    }
+    initProcessing(fcase, data.max)
+    const item = ispapidata[fcase].shift()
+    if (!item){
+        return stopProcessing(fcase)
+    }
+    refreshMyWidget(
+        'IspapiMonitoringWidget',
+        'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
+        fcase,
+        item
+    )
+}
+function stopProcessing(fcase){
+    if (ispapidata.hasOwnProperty(fcase)){
+        delete ispapidata[fcase]
+    }
+    refreshWidget('IspapiMonitoringWidget', 'refresh=1')
+}
 $('#monitModal').off().on('show.bs.modal', function (event) {
   const button = $(event.relatedTarget)
   const modal = $(this)
@@ -231,14 +303,9 @@ $('#monitModal').off().on('show.bs.modal', function (event) {
   modal.find('.modal-title').html(button.data('label'))
   modal.find('.modal-body p.description').html(button.data('descr'))
   $('#monitModalSubmit').off().click(function() {
-      refreshWidget('IspapiMonitoringWidget', 'fixit=' + button.data('case'))
-      $('#monitModalDismiss').click()
+        $('#monitModalDismiss').click()
+        startProcessing(button.data('case'), itemsArr)
   })
-  $('#monitModalDownload').css('display', '')
-  if (!itemsArr.length){
-      $('#monitModalDownload').css('display', 'none')
-      return
-  }
   $('#monitModalDownload').attr(
       'href',
       'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
