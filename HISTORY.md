@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.2.0...v1.3.0) (2020-10-02)
+
+
+### Bug Fixes
+
+* **widget:** fixed plural output in modal description ([a78cb4b](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/a78cb4bc7eac6ac9633882bbd82684b26f044c47))
+
+
+### Features
+
+* **transferlock:** added check for inactive transfer lock ([cd0f3b1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/cd0f3b16a65c6907466869d00c395f0f74e85700))
+
 # [1.2.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.1.1...v1.2.0) (2020-10-02)
 
 
