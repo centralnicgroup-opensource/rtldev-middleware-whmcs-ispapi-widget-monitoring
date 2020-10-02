@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.1.1...v1.2.0) (2020-10-02)
+
+
+### Features
+
+* **processing:** covered over javascript ([1eb34ca](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/1eb34ca4832f53d0609be238990f855301b385b8))
+
 ## [1.1.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.1.0...v1.1.1) (2020-09-25)
 
 
