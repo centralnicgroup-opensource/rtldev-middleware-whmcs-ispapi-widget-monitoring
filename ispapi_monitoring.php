@@ -42,8 +42,6 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
      */
     private function getIdProtectedDomainsAPI()
     {
-        return array_fill(0, 10, "101works.com");
-
         $r = Ispapi::call([
             "COMMAND" => "QueryDomainList",
             "X-ACCEPT-WHOISTRUSTEE-TAC" => 1
@@ -216,6 +214,9 @@ EOF;
             <p class="description"></p>
           </div>
         </form>
+        <div class="progress" id="monitModalPgb" style="display:none">
+            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="0">0%</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal" id="monitModalDismiss">Close</button>
@@ -225,91 +226,102 @@ EOF;
     </div>
   </div>
 </div>
-<script>
+<script type="text/javascript">
 const ispapidata = {}
+const ispapiresults = {}
 
 function refreshMyWidget(widgetName, requestString, fcase, item) {
-    WHMCS.http.jqClient.post(
-        WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=' + widgetName + '&' + requestString),
-        function(data) {},
-        'json'
-    ).always(function(data){
-        // {
-        //      success: true
-        //      widgetOutput: "{"success":false,"case":"wpapicase","item":"101works.com","msg":"545 Object not found"}"
-        // }
-        const pgb = $('#' + fcase + 'pgb .progess-bar')
-        const valnow = parseInt(pgb.attr('aria-valuenow'), 10) + 1
-        pgb.attr('aria-valuenow', valnow)
-        pgb.css('width', valnow + '%')
-        pgb.html(valnow + '%')
-
-        const nextitem = ispapidata[fcase].shift()
-        if (nextitem){
-            refreshMyWidget(
-                widgetName, 
-                'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
-                fcase,
-                nextitem
-            )
-        } else {
-            stopProcessing(fcase)
-        }
-    })
+    return new Promise(function (resolve) {
+        WHMCS.http.jqClient.post(
+            WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=' + widgetName + '&' + requestString),
+            function (data) {
+                resolve(JSON.parse(data.widgetOutput))
+            },
+            'json'
+        ).fail(function () {
+            resolve(getErrorResult(fcase, item));
+        })
+    });
 }
 
-function initProcessing(fcase, max) {
-    const id = fcase + 'pgb';
-    let eL = $('#' + id);
-    if (eL.length > 0){
-        return;
+function getErrorResult(fcase, item) {
+    return {
+        success: false,
+        case: fcase,
+        item: item,
+        msg: "421 An error occurred while communicating with the server. Please try again."
     }
-    eL = $('<div class="progress" id="' + id + '" style="height:1px">' +
-            '<div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="' + max + '">0%</div>' +
-        '</div>');
-    eL.insertAfter('#' + fcase)
 }
-function startProcessing(fcase, items){
-    if (ispapidata.hasOwnProperty(fcase)){
+
+async function processItems(fcase, items) {
+    if (ispapidata.hasOwnProperty(fcase)) {
         return
     }
+    $('#monitModalSubmit').prop('disabled', true);
     ispapidata[fcase] = items
-    const data = {
-        case: fcase,
-        max: items.length
+    const max = items.length
+
+    // prepare html
+    $('#monitModalPgb').css('display', '')
+    let processed = 0;
+    const pgb = $('#monitModalPgb .progress-bar')
+    pgb.attr('aria-valuenow', 0)
+    pgb.css('width', '0%')
+    pgb.attr('aria-valuemax', ispapidata[fcase].length)
+    ispapiresults[fcase] = {};
+
+    while (ispapidata[fcase].length) {
+        let item = ispapidata[fcase].shift()
+        let data = await refreshMyWidget(
+            'IspapiMonitoringWidget',
+            'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
+            fcase,
+            item
+        ).catch((err) => {
+            data = getErrorResult(fcase, item)
+        });
+        processed++
+        let percentage = Math.round((100 / max) * processed)
+        ispapiresults[fcase][item] = data
+        pgb.attr('aria-valuenow', processed)
+        pgb.css('width', percentage + '%')
+        pgb.html(percentage + '%')
     }
-    initProcessing(fcase, data.max)
-    const item = ispapidata[fcase].shift()
-    if (!item){
-        return stopProcessing(fcase)
-    }
-    refreshMyWidget(
-        'IspapiMonitoringWidget',
-        'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
-        fcase,
-        item
-    )
-}
-function stopProcessing(fcase){
-    if (ispapidata.hasOwnProperty(fcase)){
+
+    if (ispapidata.hasOwnProperty(fcase)) {
         delete ispapidata[fcase]
     }
-    refreshWidget('IspapiMonitoringWidget', 'refresh=1')
+
+    const csvdata = [];
+    const keys = Object.keys(ispapiresults[fcase]);
+    keys.forEach(csvitem => {
+        const row = ispapiresults[fcase][csvitem]
+        csvdata.push([csvitem, (row.success ? 'OK' : 'ERROR'), row.msg].join('\t'))
+    })
+    delete ispapiresults[fcase]
+    $('#monitModalDownload').attr(
+        'href',
+        'data:application/csv;charset=utf-8,' + encodeURIComponent(csvdata.join('\r\n'))
+    )
+    $('#monitModalDownload').removeClass('btn-primary').addClass('btn-success')
 }
 $('#monitModal').off().on('show.bs.modal', function (event) {
-  const button = $(event.relatedTarget)
-  const modal = $(this)
-  const itemsArr = button.data('items').split(', ')
-  modal.find('.modal-title').html(button.data('label'))
-  modal.find('.modal-body p.description').html(button.data('descr'))
-  $('#monitModalSubmit').off().click(function() {
-        $('#monitModalDismiss').click()
-        startProcessing(button.data('case'), itemsArr)
-  })
-  $('#monitModalDownload').attr(
-      'href',
-      'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
-  )
+    $('#monitModalPgb').css('display', 'none')
+    const button = $(event.relatedTarget)
+    const modal = $(this)
+    const itemsArr = button.data('items').split(', ')
+    modal.find('.modal-title').html(button.data('label'))
+    modal.find('.modal-body p.description').html(button.data('descr'))
+    $('#monitModalSubmit').off().click(function () {
+        processItems(button.data('case'), itemsArr)
+    })
+    $('#monitModalDismiss').off().click(function () {
+        refreshWidget('IspapiMonitoringWidget', 'refresh=1')
+    })
+    $('#monitModalDownload').attr(
+        'href',
+        'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join("\r\n"))
+    )
 })
 </script>
 EOF;

@@ -59,7 +59,7 @@ Otherwise cases are listed accordingly and providing a wizard to get them fixed:
 Click on `Details!` to get more information:
 ![wizard](https://user-images.githubusercontent.com/229425/94419868-9cec2f80-0183-11eb-8628-c6bcbde83588.png)
 
-Here you can download the affected items as CSV list for your reference (and forwarding to us, if necessary). By clicking on `Fix this!` the widget takes care of fixing the items.
+Here you can download the affected items as CSV list for your reference before processing (without results) and after processing (including results). By clicking on `Fix this!` the widget takes care of processing the items as described.
 
 **Note:** This can of course take a while in case a lot of domains have to be processed on API side.
 
