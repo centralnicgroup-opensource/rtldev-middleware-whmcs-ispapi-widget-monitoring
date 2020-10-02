@@ -9,7 +9,7 @@ This Repository covers the WHMCS "ISPAPI" Dashboard Widget "Monitoring". It prov
 
 ## Supported Features ##
 
-Monitoring of Domain Data Differences in WHMCS and the HEXONET API like
+Monitoring of Domain Data Issues like
 
 * WHOIS Privacy Service
 * Transfer Lock
