@@ -60,7 +60,36 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     {
         return DB::table("tbldomains")->where([
             "registrar" => "ispapi",
-            "idprotection" => 1
+            "idprotection" => 1,
+            "status" => "active"
+        ])->pluck("domain");
+    }
+
+    /**
+     * get list of domains with active whois privacy service from HEXONET API
+     * @return array list of domains
+     */
+    private function getTransferlockedDomainsAPI()
+    {
+        $r = Ispapi::call([
+            "COMMAND" => "QueryDomainList",
+            "TRANSFERLOCK" => 1
+        ]);
+        if ($r["CODE"] !== "200" || !$r["PROPERTY"]["COUNT"][0]) {
+            return [];
+        }
+        return $r["PROPERTY"]["DOMAIN"];
+    }
+
+    /**
+     * get list of domains with active whois privacy service from HEXONET API
+     * @return array list of domains
+     */
+    private function getDomainsWHMCS()
+    {
+        return DB::table("tbldomains")->where([
+            "registrar" => "ispapi",
+            "status" => "active"
         ])->pluck("domain");
     }
 
@@ -114,7 +143,18 @@ EOF;
         if (!empty($diff)) {
             $data["wpapicase"] = $diff;
         }
-        // --- gather all domain names with active whois privacy service in WHMCS but not in API
+        // --- gather all domain names with inactive transferlock in API (WHMCS does not support transferlock yet)
+        $diff = [];
+        $casesAPI = $this->getTransferlockedDomainsAPI();
+        $casesWHMCS = $this->getDomainsWHMCS();
+        foreach ($casesWHMCS as $c) {//casesWHMCS is a collection!
+            if (!in_array($c, $casesAPI)) {
+                $diff[] = $c;
+            }
+        }
+        if (!empty($diff)) {
+            $data["tlapicase"] = $diff;
+        }
         return $data;
     }
 
@@ -124,6 +164,10 @@ EOF;
             $label = "Domain" . ((count($items) === 1) ? "" : "s");
             return "<b>{$label} found with ID Protection Service active only on Registrar-side.</b>";
         }
+        if ($case === "tlapicase") {
+            $label = "Domain" . ((count($items) === 1) ? "" : "s");
+            return "<b>{$label} found with inactive transferlock on Registrar-side.</b>";
+        }
         return "";
     }
 
@@ -132,6 +176,10 @@ EOF;
         if ($case === "wpapicase") {
             $label = "Domain" . (($count === 1) ? "" : "Name");
             return "We found <b>{$count} {$label}</b> with active ID Protection in HEXONET's System, but inactive in WHMCS. Therefore, your clients are using that service, but they are not getting invoiced for it by WHMCS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to disable that service for the listed domain names in HEXONET's System.";
+        }
+        if ($case === "tlapicase") {
+            $label = "Domain" . (($count === 1) ? "" : "Name");
+            return "We found <b>{$count} {$label}</b> with inactive transferlock in HEXONET's System. Activating it avoids domains getting transferred way in ease. Transferlock is free of charge!<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to activate transferlock for the listed domain names.";
         }
         return "";
     }
@@ -173,6 +221,26 @@ EOF;
                 "item" => $item
             ];
         }
+        if ($case === "tlapicase") {
+            $r1 = Ispapi::call([
+                "COMMAND" => "ModifyDomain",
+                "DOMAIN" => $item,
+                "TRANSFERLOCK" => 1
+            ]);
+            if ($r1["CODE"] == "200") {
+                Ispapi::call([
+                    "COMMAND" => "StatusDomain",
+                    "DOMAIN" => $item
+                ]);
+            }
+            return [
+                "success" => $r1["CODE"] === "200",
+                "msg" => $r1["CODE"] . " " . $r1["DESCRIPTION"],
+                "case" => $case,
+                "item" => $item
+            ];
+        }
+
         return [];
     }
 
@@ -249,7 +317,7 @@ function getErrorResult(fcase, item) {
         success: false,
         case: fcase,
         item: item,
-        msg: "421 An error occurred while communicating with the server. Please try again."
+        msg: '421 An error occurred while communicating with the server. Please try again.'
     }
 }
 
@@ -296,12 +364,12 @@ async function processItems(fcase, items) {
     const keys = Object.keys(ispapiresults[fcase]);
     keys.forEach(csvitem => {
         const row = ispapiresults[fcase][csvitem]
-        csvdata.push([csvitem, (row.success ? 'OK' : 'ERROR'), row.msg].join('\t'))
+        csvdata.push([csvitem, (row.success ? 'OK' : 'ERROR'), row.msg].join('\\t'))
     })
     delete ispapiresults[fcase]
     $('#monitModalDownload').attr(
         'href',
-        'data:application/csv;charset=utf-8,' + encodeURIComponent(csvdata.join('\r\n'))
+        'data:application/csv;charset=utf-8,' + encodeURIComponent(csvdata.join('\\r\\n'))
     )
     $('#monitModalDownload').removeClass('btn-primary').addClass('btn-success')
 }
@@ -320,7 +388,7 @@ $('#monitModal').off().on('show.bs.modal', function (event) {
     })
     $('#monitModalDownload').attr(
         'href',
-        'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join("\r\n"))
+        'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
     )
 })
 </script>
