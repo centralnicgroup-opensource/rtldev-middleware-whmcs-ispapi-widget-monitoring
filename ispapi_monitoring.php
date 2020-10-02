@@ -161,12 +161,12 @@ EOF;
     private function getCaseLabel($case, $items, $count)
     {
         if ($case === "wpapicase") {
-            $label = "Domain" . ((count($items) === 1) ? "" : "s");
+            $label = "Domain" . (($count === 1) ? "" : "s");
             return "<b>{$label} found with ID Protection Service active only on Registrar-side.</b>";
         }
         if ($case === "tlapicase") {
-            $label = "Domain" . ((count($items) === 1) ? "" : "s");
-            return "<b>{$label} found with inactive transferlock on Registrar-side.</b>";
+            $label = "Domain" . (($count === 1) ? "" : "s");
+            return "<b>{$label} found with inactive transferlock.</b>";
         }
         return "";
     }
@@ -174,11 +174,11 @@ EOF;
     private function getCaseDescription($case, $count)
     {
         if ($case === "wpapicase") {
-            $label = "Domain" . (($count === 1) ? "" : "Name");
+            $label = "Domain" . (($count === 1) ? "" : "s");
             return "We found <b>{$count} {$label}</b> with active ID Protection in HEXONET's System, but inactive in WHMCS. Therefore, your clients are using that service, but they are not getting invoiced for it by WHMCS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to disable that service for the listed domain names in HEXONET's System.";
         }
         if ($case === "tlapicase") {
-            $label = "Domain" . (($count === 1) ? "" : "Name");
+            $label = "Domain" . (($count === 1) ? "" : "s");
             return "We found <b>{$count} {$label}</b> with inactive transferlock in HEXONET's System. Activating it avoids domains getting transferred way in ease. Transferlock is free of charge!<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to activate transferlock for the listed domain names.";
         }
         return "";
