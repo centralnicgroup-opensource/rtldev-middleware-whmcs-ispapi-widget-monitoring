@@ -22,20 +22,6 @@ If there's something missing, let us know and we will extend.
 
 This widget was planned as nice to have for different purposes to show data differences between the HEXONET API and WHMCS. Don't worry, we do not have such issues in general. Whenever changes happen on domain level outside of WHMCS you might run into trouble as booked additional domain services might not correctly get invoiced to your customers (worst case!). This might happen when using another Frontend to activate or deactivate Domain Add-Ons / Services. Some Registries (e.g. DK Hostmaster) even allow Registrants to maintain domains over a registry frontend and to perform different actions directly there. This is where WHMCS modules in general might run into corner cases - Imagine that 3 systems are there then involved: Registry, HEXONET, WHMCS. Whenever underlying processes are quite special, that's where it is getting hard with WHMCS at the end and this is where we are thinking that this Widget helps!
 
-In September 2020 one of our customers reported a critical bug that we patched immediately. A line of code that kept his life cycle from the beginning of the module until v4.4.3 lead to active id protection service on API side while being inactive in WHMCS. Affected were **domain transfers** processed in systems that used **v2.3.0 - v4.4.3** of the **ISPAPI Registrar Module**.
-A minor change that we made in v2.3.0 to refactor the **TransferSync** method to use a WHMCS interal quirk for reusing code, lead to WHMCS calling our module in a minor different way as usual, but still valid! The mentioned line of code then run into false positives detecting inactive id protection services incorrectly as active. Affected are TLDs where we offer that id protection service: gTLDs and nTLDs.
-
-Explained in code (use "===" in favor of "=="!):
-
-```php
-if ($params["idprotection"] == "on") {
-    // ... this will be run in case $params["idprotection"] is integer 0!
-    // https://www.php.net/manual/de/language.operators.comparison.php
-}
-```
-
-A single character missing with a big impact. That's why we started immediately working on this widget to give our customers a tool that helps them detecting and fixing these issues. Further steps will of course be announced. Sorry for the inconvenience caused!
-
 ## Resources ##
 
 * [Release Notes](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/releases)
