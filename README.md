@@ -28,6 +28,14 @@ This widget was planned as nice to have for different purposes to show data diff
 
 **If you have any issue related to this module, feel free to open an github issue or to contact our support team.**
 
+## Minimum Requirements ##
+
+Having Javascript activated in Browser.
+For the latest WHMCS minimum system requirements, please refer to
+[https://docs.whmcs.com/System_Requirements](https://docs.whmcs.com/System_Requirements)
+
+This Dashboard Widget is only compatible with the [ISPAPI registrar module](https://github.com/hexonet/whmcs-ispapi-registrar). Please install that provider module in version >= v4.4.5 first.
+
 ## Usage Guide ##
 
 ### Installation / Upgrade ###
@@ -56,14 +64,6 @@ Furthermore you can download the affected items as CSV list for your reference b
 NOTE: columns are separated by tab delimiter.
 
 **Note:** This can of course take a while in case a lot of domains have to be processed on API side.
-
-## Minimum Requirements ##
-
-Having Javascript activated in Browser.
-For the latest WHMCS minimum system requirements, please refer to
-[https://docs.whmcs.com/System_Requirements](https://docs.whmcs.com/System_Requirements)
-
-This Dashboard Widget is only compatible with the [ISPAPI registrar module](https://github.com/hexonet/whmcs-ispapi-registrar). Please install that provider module in version >= v4.4.5 first.
 
 ## Contributing ##
 
