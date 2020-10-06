@@ -44,7 +44,8 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     {
         $r = Ispapi::call([
             "COMMAND" => "QueryDomainList",
-            "X-ACCEPT-WHOISTRUSTEE-TAC" => 1
+            "X-ACCEPT-WHOISTRUSTEE-TAC" => 1,
+            "USERDEPTH" => "SELF"
         ]);
         if ($r["CODE"] !== "200" || !$r["PROPERTY"]["COUNT"][0]) {
             return [];
@@ -66,14 +67,15 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     }
 
     /**
-     * get list of domains with active whois privacy service from HEXONET API
+     * get list of domains with inactive whois privacy service from HEXONET API
      * @return array list of domains
      */
-    private function getTransferlockedDomainsAPI()
+    private function getTransferUnlockedDomainsAPI()
     {
         $r = Ispapi::call([
             "COMMAND" => "QueryDomainList",
-            "TRANSFERLOCK" => 1
+            "TRANSFERLOCK" => 0,
+            "USERDEPTH" => "SELF"
         ]);
         if ($r["CODE"] !== "200" || !$r["PROPERTY"]["COUNT"][0]) {
             return [];
@@ -82,15 +84,29 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     }
 
     /**
-     * get list of domains with active whois privacy service from HEXONET API
+     * get list of domains with status active
      * @return array list of domains
      */
-    private function getDomainsWHMCS()
+    private function getActiveDomainsWHMCS()
     {
-        return DB::table("tbldomains")->where([
-            "registrar" => "ispapi",
-            "status" => "active"
-        ])->pluck("domain");
+        $result = DB::table("tbldomains")
+            ->select("domain", "idprotection")
+            ->where([
+                "registrar" => "hexonet",
+                "status" => "active"
+            ])
+            ->get();
+        $tmp = [];
+        if ($result instanceof \Illuminate\Support\Collection) {
+            foreach ($result as $row) {
+                $tmp[$row->domain] = get_object_vars($row);
+            }
+        } else {
+            foreach ($result as $row) {
+                $tmp[$row["domain"]] = $row;
+            }
+        }
+        return $tmp;
     }
 
     /**
@@ -131,34 +147,39 @@ EOF;
     public function getData()
     {
         $data = [];
+        $domainsWHMCS = $this->getActiveDomainsWHMCS();
         // --- gather all domain names with active whois privacy service in API but not in WHMCS
-        $diff = [];
+        $items = [];
         $casesAPI = $this->getIdProtectedDomainsAPI();
-        $casesWHMCS = $this->getIdProtectedDomainsWHMCS();
-        foreach ($casesAPI as $c) {//casesWHMCS is a collection!
-            if (!in_array($c, $casesWHMCS)) {
-                $diff[] = $c;
+        foreach ($casesAPI as $c) {
+            if (isset($domainsWHMCS[$c]) && $domainsWHMCS[$c]["idprotection"] === 0) {
+                $items[] = $c;
             }
         }
-        if (!empty($diff)) {
-            $data["wpapicase"] = $diff;
+        if (!empty($items)) {
+            $data["wpapicase"] = $items;
         }
         // --- gather all domain names with inactive transferlock in API (WHMCS does not support transferlock yet)
-        $diff = [];
-        $casesAPI = $this->getTransferlockedDomainsAPI();
-        $casesWHMCS = $this->getDomainsWHMCS();
-        foreach ($casesWHMCS as $c) {//casesWHMCS is a collection!
-            if (!in_array($c, $casesAPI)) {
-                $diff[] = $c;
+        $items = [];
+        $casesAPI = $this->getTransferUnlockedDomainsAPI();
+        foreach ($casesAPI as $c) {
+            if (isset($domainsWHMCS[$c])) {
+                $items[] = $c;
             }
         }
-        if (!empty($diff)) {
-            $data["tlapicase"] = $diff;
+        if (!empty($items)) {
+            $data["tlapicase"] = $items;
         }
         return $data;
     }
 
-    private function getCaseLabel($case, $items, $count)
+    /**
+     * get case label
+     * @param String $case case id
+     * @param int $count count of affected items
+     * @return String case label
+     */
+    private function getCaseLabel($case, $count)
     {
         if ($case === "wpapicase") {
             $label = "Domain" . (($count === 1) ? "" : "s");
@@ -171,6 +192,12 @@ EOF;
         return "";
     }
 
+    /**
+     * get case description
+     * @param String $case case id
+     * @param int $count count of affected items
+     * @return String case description
+     */
     private function getCaseDescription($case, $count)
     {
         if ($case === "wpapicase") {
@@ -184,11 +211,17 @@ EOF;
         return "";
     }
 
+    /**
+     * get html block of case
+     * @param String $case case id
+     * @param array $rows data rows of case
+     * @return String html code
+     */
     private function getCaseBlock($case, $rows)
     {
         $count = count($rows);
         $items = implode(", ", $rows);
-        $label = $this->getCaseLabel($case, $items, $count);
+        $label = $this->getCaseLabel($case, $count);
         $descr = $this->getCaseDescription($case, $count);
         return <<<EOF
             <div class="alert alert-danger" id="{$case}">
@@ -200,6 +233,12 @@ EOF;
 EOF;
     }
 
+    /**
+     * fix given single item of given case
+     * @param String $case case id
+     * @param String $item object id like domain name
+     * @return array result e.g. [ "success" => true, "msg" => "200 Command completed successfully, "case" => "tlwhmcscase", "item" => "100works.com" ]
+     */
     private function fixCase($case, $item)
     {
         if ($case === "wpapicase") {
