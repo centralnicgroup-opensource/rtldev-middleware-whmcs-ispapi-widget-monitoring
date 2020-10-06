@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.3.0...v1.3.1) (2020-10-06)
+
+
+### Bug Fixes
+
+* **getdata:** fixed corner cases around data lookup ([483489a](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/483489a3d747cc2a35724600c07461c1bb23e75e))
+
 # [1.3.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.2.0...v1.3.0) (2020-10-02)
 
 
