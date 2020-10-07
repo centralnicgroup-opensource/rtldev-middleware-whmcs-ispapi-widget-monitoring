@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.3.1...v1.3.2) (2020-10-07)
+
+
+### Bug Fixes
+
+* **getactivedomainswhmcs:** switch back to registrar ispapi ([ebadbab](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/ebadbab93af213b3e1c9e10eb723a53909fd0382))
+
 ## [1.3.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.3.0...v1.3.1) (2020-10-06)
 
 
