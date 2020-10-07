@@ -92,7 +92,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
         $result = DB::table("tbldomains")
             ->select("domain", "idprotection")
             ->where([
-                "registrar" => "hexonet",
+                "registrar" => "ispapi",
                 "status" => "active"
             ])
             ->get();
