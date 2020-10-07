@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.4.0...v1.4.1) (2020-10-07)
+
+
+### Bug Fixes
+
+* **logo:** use right one ([ecf8cbe](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/ecf8cbef7bfccc6af0d74e9d6a9e8c552e05f1ea))
+
 # [1.4.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.3.2...v1.4.0) (2020-10-07)
 
 
