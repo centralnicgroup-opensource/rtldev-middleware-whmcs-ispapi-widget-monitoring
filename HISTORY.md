@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.3.2...v1.4.0) (2020-10-07)
+
+
+### Features
+
+* **new case:** added to cleanup additional notes related to our migration tool ([9f41945](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/9f41945a828cc8d61f7ddcb31fdfdf0c284de02f))
+
 ## [1.3.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.3.1...v1.3.2) (2020-10-07)
 
 
