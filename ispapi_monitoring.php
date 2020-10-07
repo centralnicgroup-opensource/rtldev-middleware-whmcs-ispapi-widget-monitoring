@@ -90,10 +90,10 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     private function getActiveDomainsWHMCS()
     {
         $result = DB::table("tbldomains")
-            ->select("domain", "idprotection")
+            ->select("domain", "idprotection", "additionalnotes")
             ->where([
-                "registrar" => "ispapi",
-                "status" => "active"
+                ["registrar", "=", "ispapi"],
+                ["status", "=", "active"]
             ])
             ->get();
         $tmp = [];
@@ -170,6 +170,16 @@ EOF;
         if (!empty($items)) {
             $data["tlapicase"] = $items;
         }
+        // --- gather all WHMCS domain names with status active and additional notes related to migration tool
+        $items = [];
+        foreach ($domainsWHMCS as $c => $d) {
+            if (preg_match("/^INIT_TRANSFER_(SUCCESS|FAIL)$/i", $d["additionalnotes"])) {
+                $items[] = $c;
+            }
+        }
+        if (!empty($items)) {
+            $data["migrationcase"] = $items;
+        }
         return $data;
     }
 
@@ -189,6 +199,10 @@ EOF;
             $label = "Domain" . (($count === 1) ? "" : "s");
             return "<b>{$label} found with inactive transferlock.</b>";
         }
+        if ($case === "migrationcase") {
+            $label = "Domain" . (($count === 1) ? "" : "s");
+            return "<b>{$label} found with migration process related additional notes.</b>";
+        }
         return "";
     }
 
@@ -207,6 +221,10 @@ EOF;
         if ($case === "tlapicase") {
             $label = "Domain" . (($count === 1) ? "" : "s");
             return "We found <b>{$count} {$label}</b> with inactive transferlock in HEXONET's System. Activating it avoids domains getting transferred way in ease. Transferlock is free of charge!<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to activate transferlock for the listed domain names.";
+        }
+        if ($case === "migrationcase") {
+            $label = "Domain" . (($count === 1) ? "" : "s");
+            return "We found <b>{$count} {$label}</b> with migration process related additional notes. Our whmcs-based migration tool uses the additional notes field for processing that can be cleaned up for domains in status active. Usually you'll find additional notes set to INIT_TRANSFER_FAIL or INIT_TRANSFER_SUCCESS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to process the cleanup.";
         }
         return "";
     }
@@ -279,7 +297,21 @@ EOF;
                 "item" => $item
             ];
         }
-
+        if ($case === "migrationcase") {
+            $result = DB::table("tbldomains")
+                ->where([
+                    "registrar" => "ispapi",
+                    "domain" => $item
+                ])
+                ->update(["additionalnotes" => ""]);
+            $success = ($result > 0);
+            return [
+                "success" => $success,
+                "msg" => ("Case " . (($success) ? "fixed" : "still open")),
+                "case" => $case,
+                "item" => $item
+            ];
+        }
         return [];
     }
 
@@ -422,13 +454,16 @@ $('#monitModal').off().on('show.bs.modal', function (event) {
     $('#monitModalSubmit').off().click(function () {
         processItems(button.data('case'), itemsArr)
     })
-    $('#monitModalDismiss').off().click(function () {
+    /*$('#monitModalDismiss').off().click(function () {
         refreshWidget('IspapiMonitoringWidget', 'refresh=1')
-    })
+    })*/
     $('#monitModalDownload').attr(
         'href',
         'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
     )
+})
+$('#monitModal').on('hidden.bs.modal', function (event) {
+    refreshWidget('IspapiMonitoringWidget', 'refresh=1')
 })
 </script>
 EOF;
