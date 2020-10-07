@@ -454,9 +454,6 @@ $('#monitModal').off().on('show.bs.modal', function (event) {
     $('#monitModalSubmit').off().click(function () {
         processItems(button.data('case'), itemsArr)
     })
-    /*$('#monitModalDismiss').off().click(function () {
-        refreshWidget('IspapiMonitoringWidget', 'refresh=1')
-    })*/
     $('#monitModalDownload').attr(
         'href',
         'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
