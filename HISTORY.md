@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.4.1...v1.5.0) (2020-11-24)
+
+
+### Features
+
+* **premium domains:** fixable registrarRenewalCostPrice data in tbldomains_extra ([2bddbcf](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/2bddbcff04f6f9e3dbf780f499ae18f4aec14058))
+
 ## [1.4.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.4.0...v1.4.1) (2020-10-07)
 
 
