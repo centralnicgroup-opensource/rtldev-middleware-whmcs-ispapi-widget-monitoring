@@ -90,7 +90,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     private function getActiveDomainsWHMCS()
     {
         $result = DB::table("tbldomains")
-            ->select("domain", "idprotection", "additionalnotes")
+            ->select("id", "domain", "idprotection", "additionalnotes", "is_premium")
             ->where([
                 ["registrar", "=", "ispapi"],
                 ["status", "=", "active"]
@@ -180,6 +180,19 @@ EOF;
         if (!empty($items)) {
             $data["migrationcase"] = $items;
         }
+        // --- all premium domain names with missing registrarRenewalCost in tbldomains_extra
+        $items = [];
+        foreach ($domainsWHMCS as $c => $d) {
+            if ($d["is_premium"] === 1) {
+                $recurringamount = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarRenewalCostPrice")->value("value");
+                if (is_null($recurringamount)) {
+                    $items[] = $c;
+                }
+            }
+        }
+        if (!empty($items)) {
+            $data["registrarrenewalcostpricezerocase"] = $items;
+        }
         return $data;
     }
 
@@ -203,6 +216,10 @@ EOF;
             $label = "Domain" . (($count === 1) ? "" : "s");
             return "<b>{$label} found with migration process related additional notes.</b>";
         }
+        if ($case === "registrarrenewalcostpricezerocase") {
+            $label = "Premium Domain" . (($count === 1) ? "" : "s");
+            return "<b>{$label} found with missing Premium Renewal Cost Price in DB.</b>";
+        }
         return "";
     }
 
@@ -225,6 +242,10 @@ EOF;
         if ($case === "migrationcase") {
             $label = "Domain" . (($count === 1) ? "" : "s");
             return "We found <b>{$count} {$label}</b> with migration process related additional notes. Our whmcs-based migration tool uses the additional notes field for processing that can be cleaned up for domains in status active. Usually you'll find additional notes set to INIT_TRANSFER_FAIL or INIT_TRANSFER_SUCCESS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to process the cleanup.";
+        }
+        if ($case === "registrarrenewalcostpricezerocase") {
+            $label = "Premium Domain" . (($count === 1) ? "" : "s");
+            return "We found <b>{$count} {$label}</b> with missing Premium Renewal Cost Price in DB. There had been a WHMCS Core Bug that got patched around WHMCS v7.8. It also affected our High-Performance Domainchecker Add-On's Premium Domain Handling.";
         }
         return "";
     }
@@ -305,6 +326,32 @@ EOF;
                 ])
                 ->update(["additionalnotes" => ""]);
             $success = ($result > 0);
+            return [
+                "success" => $success,
+                "msg" => ("Case " . (($success) ? "fixed" : "still open")),
+                "case" => $case,
+                "item" => $item
+            ];
+        }
+        if ($case === "registrarrenewalcostpricezerocase") {
+            $params = getregistrarconfigoptions("ispapi");
+            $prices = ispapi_GetPremiumPrice(array_merge($params, ["domain" => $item]));
+            $domain = DB::table("tbldomains")->where([
+                "registrar" => "ispapi",
+                "domain" => $item,
+                "status" => "Active",
+                "is_premium" => 1
+            ])->first();
+            $id = (is_object($domain)) ? $domain->id : $domain["id"];
+            $success = false;
+            if (!empty($prices)) {
+                $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
+                    "domain_id" => $id,
+                    "name" => "registrarRenewalCostPrice"
+                ]);
+                $extraDetails->value = $prices["renew"];
+                $success = $extraDetails->save();
+            }
             return [
                 "success" => $success,
                 "msg" => ("Case " . (($success) ? "fixed" : "still open")),
