@@ -97,12 +97,10 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
             ])
             ->get();
         $tmp = [];
-        if ($result instanceof \Illuminate\Support\Collection) {
-            foreach ($result as $row) {
+        foreach ($result as $row) {
+            if (is_object($row)) {
                 $tmp[$row->domain] = get_object_vars($row);
-            }
-        } else {
-            foreach ($result as $row) {
+            } else {
                 $tmp[$row["domain"]] = $row;
             }
         }
