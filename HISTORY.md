@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.5.0...v1.5.1) (2020-12-02)
+
+
+### Bug Fixes
+
+* **getactivedomainswhmcs:** fix data usage in loop ([885f18e](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/885f18e631d18271718b087653d5d9bc15f1c406))
+
 # [1.5.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.4.1...v1.5.0) (2020-11-24)
 
 
