@@ -24,6 +24,7 @@ If there's something missing, let us know and we will extend.
 ## Why this Widget ##
 
 This widget was planned as nice to have for different purposes to show data differences between the HEXONET API and WHMCS. Don't worry, we do not have such issues in general. Whenever changes happen on domain level outside of WHMCS you might run into trouble as booked additional domain services might not correctly get invoiced to your customers (worst case!). This might happen when using another Frontend to activate or deactivate Domain Add-Ons / Services. Some Registries (e.g. DK Hostmaster) even allow Registrants to maintain domains over a registry frontend and to perform different actions directly there. This is where WHMCS modules in general might run into corner cases - Imagine that 3 systems are there then involved: Registry, HEXONET, WHMCS. Whenever underlying processes are quite special, that's where it is getting hard with WHMCS at the end and this is where we are thinking that this Widget helps!
+Another reason might be that our resellers need help getting domain data fixed as of a bug in older WHMCS Versions.
 
 ## Resources ##
 
