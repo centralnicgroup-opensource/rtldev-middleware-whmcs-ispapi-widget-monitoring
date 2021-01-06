@@ -13,6 +13,9 @@ Monitoring of Domain Data Issues like
 
 * WHOIS Privacy Service
 * Transfer Lock
+* Premium Renewal Cost Price (WHMCS Bug 'til v7.8)
+* Standard Domains that are Premium in real
+* Cleanup comments that got added by our Migration & Consolidation Tool
 
 ... and providing buttons to get the cases fixed.
 
