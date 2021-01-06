@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.5.1...v1.6.0) (2021-01-06)
+
+
+### Features
+
+* **premium domains:** added possibility to fix standard domains in whmcs that are premium domains ([b758695](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/b75869562849fad6cfdc899f0ac06d9e770dd445))
+
 ## [1.5.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.5.0...v1.5.1) (2020-12-02)
 
 
