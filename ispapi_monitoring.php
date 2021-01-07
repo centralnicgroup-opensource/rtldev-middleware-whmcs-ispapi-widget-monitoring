@@ -350,7 +350,7 @@ EOF;
             "registrar" => "ispapi",
             "domain" => $item,
             "status" => "Active",
-            "is_premium" => 0
+            "is_premium" => null
         ];
         $domain = DB::table("tbldomains")->where($query)->first();
         $id = (is_object($domain)) ? $domain->id : $domain["id"];
