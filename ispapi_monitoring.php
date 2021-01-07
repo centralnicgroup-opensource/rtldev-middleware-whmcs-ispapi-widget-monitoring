@@ -161,39 +161,40 @@ EOF;
      */
     private static function getCaseData($case, $count)
     {
+        $singular = ($count === 1);
         if ($case === "wpapicase") {
-            $label = "Domain" . (($count === 1) ? "" : "s");
+            $label = "Domain" . ($singular ? "" : "s");
             return [
                 "label" => "<b>{$label} found with ID Protection Service active only on Registrar-side.</b>",
                 "descr" => "We found <b>{$count} {$label}</b> with active ID Protection in HEXONET's System, but inactive in WHMCS. Therefore, your clients are using that service, but they are not getting invoiced for it by WHMCS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to disable that service for the listed domain names in HEXONET's System."
             ];
         }
         if ($case === "tlapicase") {
-            $label = "Domain" . (($count === 1) ? "" : "s");
+            $label = "Domain" . ($singular ? "" : "s");
             return [
                 "label" => "<b>{$label} found with inactive transferlock.</b>",
                 "descr" => "We found <b>{$count} {$label}</b> with inactive transferlock in HEXONET's System. Activating it avoids domains getting transferred way in ease. Transferlock is free of charge!<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to activate transferlock for the listed domain names."
             ];
         }
         if ($case === "migrationcase") {
-            $label = "Domain" . (($count === 1) ? "" : "s");
+            $label = "Domain" . ($singular ? "" : "s");
             return [
                 "label" => "<b>{$label} found with migration process related additional notes.</b>",
                 "descr" => "We found <b>{$count} {$label}</b> with migration process related additional notes. Our whmcs-based migration tool uses the additional notes field for processing that can be cleaned up for domains in status active. Usually you'll find additional notes set to INIT_TRANSFER_FAIL or INIT_TRANSFER_SUCCESS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to process the cleanup."
             ];
         }
         if ($case === "registrarrenewalcostpricezerocase") {
-            $label = "Premium Domain" . (($count === 1) ? "" : "s");
+            $label = "Premium Domain" . ($singular ? "" : "s");
             return [
                 "label" => "<b>{$label} found with missing Premium Renewal Cost Price in DB.</b>",
                 "descr" => "We found <b>{$count} {$label}</b> with missing Premium Renewal Cost Price in DB. There had been a WHMCS Core Bug that got patched around WHMCS v7.8. It also affected our High-Performance Domainchecker Add-On's Premium Domain Handling."
             ];
         }
         if ($case === "domain2premiumcase") {
-            $label = "Standard Domain" . (($count === 1) ? "" : "s");
+            $label = "Standard Domain" . ($singular ? "" : "s");
             return [
-                "label" => "<b>{$label} found that are Premium Domains in HEXONET's System.</b>",
-                "descr" => "We found <b>{$count} {$label}</b> in WHMCS that are Premium Domains in HEXONET's System. This may happen if domains were manually added in WHMCS or the respective registry did this change."
+                "label" => "<b>{$label} found that " . ($singular ? "is a" : "are" ) . " Premium Domains in HEXONET's System.</b>",
+                "descr" => "We found <b>{$count} {$label}</b> in WHMCS that " . ($singular ? "is a" : "are" ) . " Premium Domains in HEXONET's System. This may happen if domains were manually added in WHMCS or the respective registry did this change."
             ];
         }
         return [
