@@ -430,7 +430,7 @@ EOF;
         $items = [];
         $casesAPI = self::getIdProtectedDomainsAPI();
         foreach ($casesAPI as $c) {
-            if (isset($domainsWHMCS[$c]) && $domainsWHMCS[$c]["idprotection"] === 0) {
+            if (isset($domainsWHMCS[$c]) && empty($domainsWHMCS[$c]["is_premium"]) /* null, 0, empty str */) {
                 $items[] = $c;
             }
         }
