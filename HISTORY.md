@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.2...v1.6.3) (2021-01-07)
+
+
+### Bug Fixes
+
+* **premium domains:** is_premium is by default null, prev update missing ([fec5c9d](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/fec5c9d640a7792b4fa4d9a96c9f611eb7c33191))
+
 ## [1.6.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.1...v1.6.2) (2021-01-07)
 
 
