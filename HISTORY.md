@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.1...v1.6.2) (2021-01-07)
+
+
+### Bug Fixes
+
+* **texts:** fixes text output related to singular/plural correctness ([1ca9778](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/1ca9778f955d29d086ce0476c6a99824063f9f33))
+
 ## [1.6.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.0...v1.6.1) (2021-01-07)
 
 
