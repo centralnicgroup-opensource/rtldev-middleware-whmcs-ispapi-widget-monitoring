@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.0...v1.6.1) (2021-01-07)
+
+
+### Bug Fixes
+
+* **premium domains:** fix case detection (is_premium is NULL by default) ([f78c9fc](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/f78c9fcd9dd7ee636a4a445b5080c9363c76cfa2))
+
 # [1.6.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.5.1...v1.6.0) (2021-01-06)
 
 
