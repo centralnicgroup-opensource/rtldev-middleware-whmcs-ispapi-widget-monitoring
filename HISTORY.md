@@ -1,3 +1,10 @@
+## [1.6.5](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.4...v1.6.5) (2021-01-20)
+
+
+### Bug Fixes
+
+* **ci:** migration from Travis CI to github actions ([c131dc7](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/c131dc7a85a97b8c24723907a0bc37d94cfe603c))
+
 ## [1.6.4](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.3...v1.6.4) (2021-01-07)
 
 
