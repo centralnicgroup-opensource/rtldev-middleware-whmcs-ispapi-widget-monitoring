@@ -9,7 +9,8 @@
     },
     "license": "MIT",
     "engines": {
-        "node": ">=10.18.0"
+        "node": ">=10.18.0",
+        "npm": ">=6.13.4"
     },
     "homepage": "https://github.com/hexonet/whmcs-ispapi-widget-monitoring",
     "repository": "github:hexonet/whmcs-ispapi-widget-monitoring",
@@ -40,9 +41,13 @@
         "application"
     ],
     "devDependencies": {
-        "npm": ">=6.13.4",
         "semantic-release": "^17.1.2",
-        "@hexonet/semantic-release-github-whmcsbase-config": "^1.0.0"
+        "@hexonet/semantic-release-github-whmcsbase-config": "^2.0.1",
+        "gulp": "^4.0.2",
+        "gulp-clean": "^0.4.0",
+        "gulp-tar": "^3.1.0",
+        "gulp-gzip": "^1.4.2",
+        "gulp-zip": "^5.0.2"
     },
     "scripts": {
         "phpCompatibility": "./scripts/phpcompatibility.sh",
