@@ -34,7 +34,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     protected $cache = false;
     protected $cacheExpiry = 120;
     protected $requiredPermission = '';
-    const VERSION = "1.6.5";
+    const VERSION = "1.6.6";
 
     /**
      * add generic parameters to domain list command and request to API

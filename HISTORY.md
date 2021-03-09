@@ -1,3 +1,10 @@
+## [1.6.6](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.5...v1.6.6) (2021-03-09)
+
+
+### Performance Improvements
+
+* **getactivedomainswhmcs:** to use toJson approach for array vs. object problem ([00c032d](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/00c032d31d393c918e69bb4104ad115cd5ec1b69))
+
 ## [1.6.5](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.4...v1.6.5) (2021-01-20)
 
 
