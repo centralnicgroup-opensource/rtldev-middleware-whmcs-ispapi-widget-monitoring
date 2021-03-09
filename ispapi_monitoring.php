@@ -120,14 +120,10 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
                 ["registrar", "=", "ispapi"],
                 ["status", "=", "active"]
             ])
-            ->get();
+            ->get()->toJson();
         $tmp = [];
         foreach ($result as $row) {
-            if (is_object($row)) {
-                $tmp[$row->domain] = get_object_vars($row);
-            } else {
-                $tmp[$row["domain"]] = $row;
-            }
+            $tmp[$row["domain"]] = $row;
         }
         return $tmp;
     }
