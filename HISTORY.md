@@ -1,3 +1,10 @@
+## [1.6.7](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.6...v1.6.7) (2021-03-30)
+
+
+### Bug Fixes
+
+* **getactivedomainswhmcs:** fixed issue with foreach args ([ccc2031](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/ccc2031f6ec3bea4589a72bb7e5e34927c9a9635))
+
 ## [1.6.6](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.5...v1.6.6) (2021-03-09)
 
 
