@@ -114,16 +114,18 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
         if (!is_null($tmp)) {
             return $tmp;
         }
-        $result = DB::table("tbldomains")
+        $result = json_decode(DB::table("tbldomains")
             ->select("id", "domain", "idprotection", "additionalnotes", "is_premium")
             ->where([
                 ["registrar", "=", "ispapi"],
                 ["status", "=", "active"]
             ])
-            ->get()->toJson();
+            ->get()->toJson(), true);
         $tmp = [];
-        foreach ($result as $row) {
-            $tmp[$row["domain"]] = $row;
+        if (!empty($result)) {
+            foreach ($result as $row) {
+                $tmp[$row["domain"]] = $row;
+            }
         }
         return $tmp;
     }
@@ -426,9 +428,11 @@ EOF;
         $domainsWHMCS = self::getActiveDomainsWHMCS();
         $items = [];
         $casesAPI = self::getIdProtectedDomainsAPI();
-        foreach ($casesAPI as $c) {
-            if (isset($domainsWHMCS[$c]) && empty($domainsWHMCS[$c]["is_premium"]) /* null, 0, empty str */) {
-                $items[] = $c;
+        if (!empty($casesAPI)) {
+            foreach ($casesAPI as $c) {
+                if (isset($domainsWHMCS[$c]) && empty($domainsWHMCS[$c]["is_premium"]) /* null, 0, empty str */) {
+                    $items[] = $c;
+                }
             }
         }
         if (!empty($items)) {
@@ -447,9 +451,11 @@ EOF;
         $domainsWHMCS = self::getActiveDomainsWHMCS();
         $items = [];
         $casesAPI = self::getTransferUnlockedDomainsAPI();
-        foreach ($casesAPI as $c) {
-            if (isset($domainsWHMCS[$c])) {
-                $items[] = $c;
+        if (!empty($casesAPI)) {
+            foreach ($casesAPI as $c) {
+                if (isset($domainsWHMCS[$c])) {
+                    $items[] = $c;
+                }
             }
         }
         if (!empty($items)) {
