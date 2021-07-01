@@ -1,3 +1,24 @@
+## [1.6.7](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.6...v1.6.7) (2021-03-30)
+
+
+### Bug Fixes
+
+* **getactivedomainswhmcs:** fixed issue with foreach args ([ccc2031](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/ccc2031f6ec3bea4589a72bb7e5e34927c9a9635))
+
+## [1.6.6](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.5...v1.6.6) (2021-03-09)
+
+
+### Performance Improvements
+
+* **getactivedomainswhmcs:** to use toJson approach for array vs. object problem ([00c032d](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/00c032d31d393c918e69bb4104ad115cd5ec1b69))
+
+## [1.6.5](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.4...v1.6.5) (2021-01-20)
+
+
+### Bug Fixes
+
+* **ci:** migration from Travis CI to github actions ([c131dc7](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/c131dc7a85a97b8c24723907a0bc37d94cfe603c))
+
 ## [1.6.4](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.3...v1.6.4) (2021-01-07)
 
 

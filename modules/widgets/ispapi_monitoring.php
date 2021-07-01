@@ -34,7 +34,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     protected $cache = false;
     protected $cacheExpiry = 120;
     protected $requiredPermission = '';
-    const VERSION = "1.6.4";
+    const VERSION = "1.6.7";
 
     /**
      * add generic parameters to domain list command and request to API
@@ -114,18 +114,16 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
         if (!is_null($tmp)) {
             return $tmp;
         }
-        $result = DB::table("tbldomains")
+        $result = json_decode(DB::table("tbldomains")
             ->select("id", "domain", "idprotection", "additionalnotes", "is_premium")
             ->where([
                 ["registrar", "=", "ispapi"],
                 ["status", "=", "active"]
             ])
-            ->get();
+            ->get()->toJson(), true);
         $tmp = [];
-        foreach ($result as $row) {
-            if (is_object($row)) {
-                $tmp[$row->domain] = get_object_vars($row);
-            } else {
+        if (!empty($result)) {
+            foreach ($result as $row) {
                 $tmp[$row["domain"]] = $row;
             }
         }
@@ -430,9 +428,11 @@ EOF;
         $domainsWHMCS = self::getActiveDomainsWHMCS();
         $items = [];
         $casesAPI = self::getIdProtectedDomainsAPI();
-        foreach ($casesAPI as $c) {
-            if (isset($domainsWHMCS[$c]) && empty($domainsWHMCS[$c]["is_premium"]) /* null, 0, empty str */) {
-                $items[] = $c;
+        if (!empty($casesAPI)) {
+            foreach ($casesAPI as $c) {
+                if (isset($domainsWHMCS[$c]) && empty($domainsWHMCS[$c]["is_premium"]) /* null, 0, empty str */) {
+                    $items[] = $c;
+                }
             }
         }
         if (!empty($items)) {
@@ -451,9 +451,11 @@ EOF;
         $domainsWHMCS = self::getActiveDomainsWHMCS();
         $items = [];
         $casesAPI = self::getTransferUnlockedDomainsAPI();
-        foreach ($casesAPI as $c) {
-            if (isset($domainsWHMCS[$c])) {
-                $items[] = $c;
+        if (!empty($casesAPI)) {
+            foreach ($casesAPI as $c) {
+                if (isset($domainsWHMCS[$c])) {
+                    $items[] = $c;
+                }
             }
         }
         if (!empty($items)) {
