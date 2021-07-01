@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.7...v1.7.0) (2021-07-01)
+
+
+### Features
+
+* **zipfile:** added subdirs to the zipfile ([47e9a35](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/47e9a3544f6c2100aeb77f6163e96f1812c83b94))
+
 ## [1.6.7](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.6...v1.6.7) (2021-03-30)
 
 
