@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.7.0...v1.7.1) (2021-07-08)
+
+
+### Bug Fixes
+
+* **semantic-release:** version update mechanism ([633f561](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/633f56153ee8680bcec6d313ff5814473faf47e0))
+
 # [1.7.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.6.7...v1.7.0) (2021-07-01)
 
 
