@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.7.1...v1.8.0) (2021-09-22)
+
+
+### Features
+
+* **toggle on/off:** reviewed from scratch, follows our account widget ([1fe39e0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/1fe39e0653bf498bb0cd11a78c145f62db339106))
+
 ## [1.7.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.7.0...v1.7.1) (2021-07-08)
 
 
