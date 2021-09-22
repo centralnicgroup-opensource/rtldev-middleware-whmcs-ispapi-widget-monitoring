@@ -17,15 +17,128 @@ namespace WHMCS\Module\Widget;
 use App;
 use Illuminate\Database\Capsule\Manager as DB;
 use WHMCS\Module\Registrar\Ispapi\Ispapi;
+use WHMCS\Config\Setting;
 
-add_hook('AdminHomeWidgets', 1, function () {
-    return new IspapiMonitoringWidget();
-});
+const ISPAPI_LOGO_URL = "https://raw.githubusercontent.com/hexonet/whmcs-ispapi-registrar/master/modules/registrars/ispapi/logo.png";
+const ISPAPI_REGISTRAR_GIT_URL = "https://github.com/hexonet/whmcs-ispapi-registrar";
+
+if (!class_exists('WHMCS\Module\Widget\IspapiBaseWidget')) {
+    class IspapiBaseWidget extends \WHMCS\Module\AbstractWidget
+    {
+        protected string $widgetid;
+
+        public function __construct(string $id)
+        {
+            $this->widgetid = $id;
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+        }
+
+        /**
+         * Fetch data that will be provided to generateOutput method
+         * @return mixed data array or null in case of an error
+         */
+        public function getData()
+        {
+            $status = \App::getFromRequest("status");
+            if ($status !== "") {
+                $status = (int)$status;
+                if (in_array($status, [0,1])) {
+                    Setting::setValue($this->widgetid, $status);
+                }
+                return [
+                    "success" => (int)Setting::getValue($this->widgetid) === $status
+                ];
+            }
+
+            $status = Setting::getValue($this->widgetid);
+            if (is_null($status)) {
+                $status = 1;
+            }
+            return [
+                "status" => (int)$status
+            ];
+        }
+
+        /**
+         * generate widget"s html output
+         * @param mixed $data input data (from getData method)
+         * @return string html code
+         */
+        public function generateOutput($data)
+        {
+            // missing or inactive registrar Module
+            if ($data["status"] === -1) {
+                $gitURL = ISPAPI_REGISTRAR_GIT_URL;
+                $logoURL = ISPAPI_LOGO_URL;
+                return <<<HTML
+                    <div class="widget-content-padded widget-billing">
+                        <div class="color-pink">
+                            Please install or upgrade to the latest HEXONET ISPAPI Registrar Module.
+                            <span data-toggle="tooltip" title="The HEXONET ISPAPI Registrar Module is regularly maintained, download and documentation available at github." class="glyphicon glyphicon-question-sign"></span><br/>
+                            <a href="{$gitURL}">
+                                <img src="{$logoURL}" width="125" height="40"/>
+                            </a>
+                        </div>
+                    </div>
+                HTML;
+            }
+
+            // show our widget
+            $html = "";
+            if ($data["status"] === 0) {
+                $html = <<<HTML
+                <div class="widget-billing">
+                    <div class="row account-overview-widget">
+                        <div class="col-sm-12">
+                            <div class="item">
+                                <div class="note">
+                                    Widget is currently disabled. Use the first icon for enabling.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                HTML;
+            }
+            // Data Refresh Request -> avoid including JavaScript
+            if (empty($_REQUEST["refresh"])) {
+                $ico = ($data["status"] === 1) ? "on" : "off";
+                $wid = ucfirst($this->widgetid);
+                $html = <<<HTML
+                {$html}
+                <script type="text/javascript">
+                if (!$("#panel${wid} .widget-tools .hx-widget-toggle").length) {
+                    $("#panel${wid} .widget-tools").prepend(
+                        `<a href="#" class="hx-widget-toggle" data-status="${data["status"]}">
+                            <i class=\"fas fa-toggle-${ico}\"></i>
+                        </a>`
+                    );
+                }
+                $("#panel${wid} .hx-widget-toggle").off().on("click", function (event) {
+                    event.preventDefault();
+                    const newstatus = (1 - $(this).data("status"));
+                    const url = WHMCS.adminUtils.getAdminRouteUrl("/widget/refresh&widget=${wid}&status=" + newstatus)
+                    WHMCS.http.jqClient.post(url, function (json) {
+                        if (json.success && (JSON.parse(json.widgetOutput)).success) {
+                            window.location.reload(); // widget refresh doesn't update the height
+                        }
+                    }, 'json');
+                });
+                </script>
+                HTML;
+            }
+
+            return $html;
+        }
+    }
+}
 
 /**
  * ISPAPI Monitoring Widget.
  */
-class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
+class IspapiMonitoringWidget extends IspapiBaseWidget
 {
     protected $title = 'HEXONET ISPAPI Domain Monitoring';
     protected $description = '';
@@ -35,6 +148,11 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     protected $cacheExpiry = 120;
     protected $requiredPermission = '';
     const VERSION = "1.7.1";
+
+    public function __construct()
+    {
+        parent::__construct("ispapiMonitoringWidget");
+    }
 
     /**
      * add generic parameters to domain list command and request to API
@@ -128,28 +246,6 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
             }
         }
         return $tmp;
-    }
-
-    /**
-     * return html code for ok case specified by given message
-     * @static
-     * @param String $msg success message to show
-     * @param String $prehtml HTML to add before the success message output
-     * @param String $afterhtml HTML to add after the success message output
-     * @return String html code
-     */
-    private static function returnOk($msg, $prehtml, $afterhtml)
-    {
-        return <<<EOF
-                <div class="widget-content-padded widget-billing">
-                    {$prehtml}
-                    <div class="item text-center">
-                        <div class="data color-green">$msg</div>
-                        <div class="note">Check Result</div>
-                    </div>
-                    {$afterhtml}
-                </div>
-EOF;
     }
 
     /**
@@ -533,136 +629,42 @@ EOF;
      */
     public function getData()
     {
-        $data = [];
+        if (!class_exists(Ispapi::class)) {
+            // @codeCoverageIgnoreStart
+            return [
+                "status" => -1
+            ];
+            // @codeCoverageIgnoreEnd
+        }
+
+        // fixage requested for given case and item
+        $case = \App::getFromRequest('fixit');
+        $item = \App::getFromRequest('item');
+        if ($case && $item) {
+            return self::fixCase($case, $item);
+        }
+
+        // load status and cases data
+        $data = array_merge(
+            parent::getData(),
+            ["cases" => []]
+        );
         // --- case `wpapicase`
-        self::getDataWPAPICASE($data);
+        self::getDataWPAPICASE($data["cases"]);
 
         // --- case `tlapicase`
-        self::getDataTLAPICASE($data);
+        self::getDataTLAPICASE($data["cases"]);
 
         // --- case `migrationcase`
-        self::getDataMIGRATIONCASE($data);
+        self::getDataMIGRATIONCASE($data["cases"]);
 
         // --- case `registrarrenewalcostpricezerocase`
-        self::getDataREGISTRARRENEWALCOSTPRICEZEROCASE($data);
+        self::getDataREGISTRARRENEWALCOSTPRICEZEROCASE($data["cases"]);
 
         // --- case `domain2premiumcase`
-        self::getDataDOMAIN2PREMIUMCASE($data);
+        self::getDataDOMAIN2PREMIUMCASE($data["cases"]);
 
         return $data;
-    }
-
-    private static function generateOutputJS()
-    {
-        return <<<EOF
-        <script type="text/javascript">
-const ispapidata = {}
-const ispapiresults = {}
-
-function refreshMyWidget(widgetName, requestString, fcase, item) {
-    return new Promise(function (resolve) {
-        WHMCS.http.jqClient.post(
-            WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=' + widgetName + '&' + requestString),
-            function (data) {
-                resolve(JSON.parse(data.widgetOutput))
-            },
-            'json'
-        ).fail(function () {
-            resolve(getErrorResult(fcase, item));
-        })
-    });
-}
-
-function getErrorResult(fcase, item) {
-    return {
-        success: false,
-        case: fcase,
-        item: item,
-        msg: '421 An error occurred while communicating with the server. Please try again.'
-    }
-}
-
-async function processItems(fcase, items) {
-    if (ispapidata.hasOwnProperty(fcase)) {
-        return
-    }
-    $('#monitModalSubmit').prop('disabled', true);
-    ispapidata[fcase] = items
-    const max = items.length
-
-    // prepare html
-    $('#monitModalPgb').css('display', '')
-    let processed = 0;
-    const pgb = $('#monitModalPgb .progress-bar')
-    pgb.attr('aria-valuenow', 0)
-    pgb.css('width', '0%')
-    pgb.attr('aria-valuemax', ispapidata[fcase].length)
-    ispapiresults[fcase] = {};
-
-    while (ispapidata[fcase].length) {
-        let item = ispapidata[fcase].shift()
-        let data = await refreshMyWidget(
-            'IspapiMonitoringWidget',
-            'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
-            fcase,
-            item
-        ).catch((err) => {
-            data = getErrorResult(fcase, item)
-        });
-        processed++
-        let percentage = Math.round((100 / max) * processed)
-        ispapiresults[fcase][item] = data
-        pgb.attr('aria-valuenow', processed)
-        pgb.css('width', percentage + '%')
-        pgb.html(percentage + '%')
-    }
-
-    if (ispapidata.hasOwnProperty(fcase)) {
-        delete ispapidata[fcase]
-    }
-
-    const csvdata = [];
-    const keys = Object.keys(ispapiresults[fcase]);
-    keys.forEach(csvitem => {
-        const row = ispapiresults[fcase][csvitem]
-        csvdata.push([csvitem, (row.success ? 'OK' : 'ERROR'), row.msg].join('\\t'))
-    })
-    delete ispapiresults[fcase]
-    $('#monitModalDownload').attr(
-        'href',
-        'data:application/csv;charset=utf-8,' + encodeURIComponent(csvdata.join('\\r\\n'))
-    )
-    $('#monitModalDownload').removeClass('btn-primary').addClass('btn-success')
-}
-$('#monitModal').off().on('show.bs.modal', function (event) {
-    $('#monitModalPgb').css('display', 'none')
-    const button = $(event.relatedTarget)
-    const modal = $(this)
-    const itemsArr = button.data('items').split(', ')
-    modal.find('.modal-title').html(button.data('label'))
-    modal.find('.modal-body p.description').html(button.data('descr'))
-    $('#monitModalSubmit').off().click(function () {
-        processItems(button.data('case'), itemsArr)
-    })
-    $('#monitModalDownload').attr(
-        'href',
-        'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
-    )
-})
-$('#monitModal').on('hidden.bs.modal', function (event) {
-    refreshWidget('IspapiMonitoringWidget', 'refresh=1')
-})
-$('#statusbtn').off().on('click', function (event) {
-    WHMCS.http.jqClient.post(
-        WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=IspapiMonitoringWidget&status=' + encodeURIComponent($(this).attr("value"))),
-        function () {
-            refreshWidget('IspapiMonitoringWidget', 'refresh=1')
-        },
-        'json'
-    )
-})
-</script>
-EOF;
     }
 
     /**
@@ -672,72 +674,188 @@ EOF;
      */
     public function generateOutput($data)
     {
-        $status = App::getFromRequest('status');
-        if ($status !== "") {
-            $setting = \WHMCS\Config\Setting::setValue("ispapiMonitoringWidget", $status);
-            $success = $setting::getValue("ispapiMonitoringWidget") === $status;
-            return [
-                "success" => $success,
-                "msg" => ("Widget status " . (($success) ? "changed" : "not changed"))
-            ];
+        // post request handling
+        if (isset($data["success"])) {
+            return json_encode($data) ?: "[\"success\":false]";
         }
 
-        $status = \WHMCS\Config\Setting::getValue("ispapiMonitoringWidget");
-        $jscript = self::generateOutputJS();
+        // widget controls / status switch
+        $html = parent::generateOutput($data);
 
-        if (empty($status)) { // null or 0
-            return <<<EOF
-<div class="widget-content-padded ispapi-monitoring-items">
-    <button id="statusbtn" type="button" value="1" class="btn btn-primary btn-sm">Enable Widget</button>
-</div>
-{$jscript}
-EOF;
-        }
-        $output = '<button id="statusbtn" type="button" value="0" class="btn btn-primary btn-sm">Disable Widget</button>';
-        $case = App::getFromRequest('fixit');
-        $item = App::getFromRequest('item');
-        if ($case && $item) {
-            return self::fixCase($case, $item);
-        }
-        if (empty($data)) {
-            return self::returnOk("No issues detected.", $output, $jscript);
-        }
-        $output .= "<br/><br/>";
-        foreach ($data as $key => $rows) {
-            $output .= self::getCaseBlock($key, $rows);
+        // Missing Registrar Module (-1)
+        // Inactive Widget (0)
+        if ($data["status"] !== 1) {
+            return $html;
         }
 
-        return <<<EOF
-<div class="widget-content-padded ispapi-monitoring-items">{$output}</div>
-<div class="modal fade" id="monitModal" tabindex="-1" role="dialog" aria-labelledby="monitModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title" id="monitModalLabel"></h2>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form id="monitModalForm">
-          <div class="form-group">
-            <label for="recipient-name" class="col-form-label">Details:</label>
-            <p class="description"></p>
-          </div>
-        </form>
-        <div class="progress" id="monitModalPgb" style="display:none">
-            <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="0">0%</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal" id="monitModalDismiss">Close</button>
-        <a class="btn btn-primary" id="monitModalDownload" download="export.csv">CSV</a>
-        <button type="button" class="btn btn-primary" id="monitModalSubmit">Fix this!</button>
-      </div>
-    </div>
-  </div>
-</div>
-{$jscript}
-EOF;
+        // generate HTML
+        if (empty($data["cases"])) {
+            $html .= <<<HTML
+                <div class="widget-content-padded widget-billing">
+                    <div class="item text-center">
+                        <div class="data color-green">No issues detected.</div>
+                        <div class="note">Check Result</div>
+                    </div>
+                </div>
+                HTML;
+        } else {
+            $output = "";
+            foreach ($data["cases"] as $key => $rows) {
+                $output .= self::getCaseBlock($key, $rows);
+            }
+
+            $html .= <<<HTML
+            <div class="widget-content-padded ispapi-monitoring-items"><br/><br/>{$output}</div>
+            <div class="modal fade" id="monitModal" tabindex="-1" role="dialog" aria-labelledby="monitModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="monitModalLabel"></h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="monitModalForm">
+                    <div class="form-group">
+                        <label for="recipient-name" class="col-form-label">Details:</label>
+                        <p class="description"></p>
+                    </div>
+                    </form>
+                    <div class="progress" id="monitModalPgb" style="display:none">
+                        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="0">0%</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="monitModalDismiss">Close</button>
+                    <a class="btn btn-primary" id="monitModalDownload" download="export.csv">CSV</a>
+                    <button type="button" class="btn btn-primary" id="monitModalSubmit">Fix this!</button>
+                </div>
+                </div>
+            </div>
+            </div>
+            HTML;
+        }
+
+        if (!empty($_REQUEST["refresh"])) {
+            return $html;
+        }
+
+        return <<<HTML
+        {$html}
+        <script type="text/javascript">
+        $('#monitModal').off().on('show.bs.modal', function (event) {
+            $('#monitModalPgb').css('display', 'none')
+            const button = $(event.relatedTarget)
+            const modal = $(this)
+            const itemsArr = button.data('items').split(', ')
+            modal.find('.modal-title').html(button.data('label'))
+            modal.find('.modal-body p.description').html(button.data('descr'))
+            $('#monitModalSubmit').off().click(function () {
+                processItems(button.data('case'), itemsArr)
+            })
+            $('#monitModalDownload').attr(
+                'href',
+                'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
+            )
+        })
+        $('#monitModal').on('hidden.bs.modal', function (event) {
+            refreshWidget('IspapiMonitoringWidget', 'refresh=1')
+        })
+        </script>
+        HTML;
     }
 }
+
+// @codeCoverageIgnoreStart
+add_hook('AdminAreaHeadOutput', 1, function () {
+    if ($vars["pagetitle"] === "Dashboard") {
+        return <<<HTML
+            <script>
+            const ispapidata = {}
+            const ispapiresults = {}
+
+            function refreshMyWidget(widgetName, requestString, fcase, item) {
+                return new Promise(function (resolve) {
+                    WHMCS.http.jqClient.post(
+                        WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=' + widgetName + '&' + requestString),
+                        function (data) {
+                            resolve(JSON.parse(data.widgetOutput))
+                        },
+                        'json'
+                    ).fail(function () {
+                        resolve(getErrorResult(fcase, item));
+                    })
+                });
+            }
+
+            function getErrorResult(fcase, item) {
+                return {
+                    success: false,
+                    case: fcase,
+                    item: item,
+                    msg: '421 An error occurred while communicating with the server. Please try again.'
+                }
+            }
+
+            async function processItems(fcase, items) {
+                if (ispapidata.hasOwnProperty(fcase)) {
+                    return
+                }
+                $('#monitModalSubmit').prop('disabled', true);
+                ispapidata[fcase] = items
+                const max = items.length
+
+                // prepare html
+                $('#monitModalPgb').css('display', '')
+                let processed = 0;
+                const pgb = $('#monitModalPgb .progress-bar')
+                pgb.attr('aria-valuenow', 0)
+                pgb.css('width', '0%')
+                pgb.attr('aria-valuemax', ispapidata[fcase].length)
+                ispapiresults[fcase] = {};
+
+                while (ispapidata[fcase].length) {
+                    let item = ispapidata[fcase].shift()
+                    let data = await refreshMyWidget(
+                        'IspapiMonitoringWidget',
+                        'fixit=' + encodeURIComponent(fcase) + '&item=' + encodeURIComponent(item),
+                        fcase,
+                        item
+                    ).catch((err) => {
+                        data = getErrorResult(fcase, item)
+                    });
+                    processed++
+                    let percentage = Math.round((100 / max) * processed)
+                    ispapiresults[fcase][item] = data
+                    pgb.attr('aria-valuenow', processed)
+                    pgb.css('width', percentage + '%')
+                    pgb.html(percentage + '%')
+                }
+
+                if (ispapidata.hasOwnProperty(fcase)) {
+                    delete ispapidata[fcase]
+                }
+
+                const csvdata = [];
+                const keys = Object.keys(ispapiresults[fcase]);
+                keys.forEach(csvitem => {
+                    const row = ispapiresults[fcase][csvitem]
+                    csvdata.push([csvitem, (row.success ? 'OK' : 'ERROR'), row.msg].join('\\t'))
+                })
+                delete ispapiresults[fcase]
+                $('#monitModalDownload').attr(
+                    'href',
+                    'data:application/csv;charset=utf-8,' + encodeURIComponent(csvdata.join('\\r\\n'))
+                )
+                $('#monitModalDownload').removeClass('btn-primary').addClass('btn-success')
+            }
+        </script>
+        HTML;
+    }
+});
+
+add_hook('AdminHomeWidgets', 1, function () {
+    return new IspapiMonitoringWidget();
+});
+// @codeCoverageIgnoreEnd
