@@ -236,7 +236,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
             }
 
             $html .= <<<HTML
-            <div class="widget-content-padded ispapi-monitoring-items"><br/><br/>{$output}</div>
+            <div class="widget-content-padded ispapi-monitoring-items">{$output}</div>
             <div class="modal fade" id="monitModal" tabindex="-1" role="dialog" aria-labelledby="monitModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
                 <div class="modal-content">
