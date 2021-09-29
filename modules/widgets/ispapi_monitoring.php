@@ -19,72 +19,137 @@ use Illuminate\Database\Capsule\Manager as DB;
 use WHMCS\Module\Registrar\Ispapi\Ispapi;
 use WHMCS\Config\Setting;
 
-const ISPAPI_LOGO_URL = "https://raw.githubusercontent.com/hexonet/whmcs-ispapi-registrar/master/modules/registrars/ispapi/logo.png";
-const ISPAPI_REGISTRAR_GIT_URL = "https://github.com/hexonet/whmcs-ispapi-registrar";
+/**
+ * ISPAPI Monitoring Widget.
+ */
+class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
+{
+    protected $title = 'HEXONET Domain Monitoring';
+    protected $description = '';
+    protected $weight = 150;
+    protected $columns = 1;
+    protected $cache = false;
+    protected $cacheExpiry = 120;
+    protected $requiredPermission = '';
+    public static $widgetid = "IspapiMonitoringWidget";
+    // public static $sessionttl = 24 * 3600; // 1d
+    const VERSION = "1.8.0";
 
-if (!class_exists('WHMCS\Module\Widget\IspapiBaseWidget')) {
-    class IspapiBaseWidget extends \WHMCS\Module\AbstractWidget
+    /**
+     * Fetch data that will be provided to generateOutput method
+     * @return array|null data array or null in case of an error
+     */
+    public function getData()
     {
-        protected string $widgetid;
+        /*if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }*/
 
-        public function __construct(string $id)
-        {
-            $this->widgetid = $id;
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+        $id = self::$widgetid;
+
+        // Missing Dependency
+        // @codeCoverageIgnoreStart
+        if (!class_exists(Ispapi::class)) {
+            return [
+                "status" => -1,
+                "widgetid" => $id
+            ];
+        }
+        // @codeCoverageIgnoreEnd
+
+        // status toggle
+        $status = \App::getFromRequest("status");
+        if ($status !== "") {
+            $status = (int)$status;
+            if (in_array($status, [0,1])) {
+                Setting::setValue($id . "status", $status);
             }
         }
 
-        /**
-         * Fetch data that will be provided to generateOutput method
-         * @return mixed data array or null in case of an error
-         */
-        public function getData()
-        {
-            $status = \App::getFromRequest("status");
-            if ($status !== "") {
-                $status = (int)$status;
-                if (in_array($status, [0,1])) {
-                    Setting::setValue($this->widgetid, $status);
-                }
-                return [
-                    "success" => (int)Setting::getValue($this->widgetid) === $status
-                ];
-            }
-
-            $status = Setting::getValue($this->widgetid);
-            if (is_null($status)) {
-                $status = 1;
-            }
+        // hidden widgets -> don't load data
+        $isHidden = in_array($id, $this->adminUser->hiddenWidgets);
+        if ($isHidden) {
             return [
-                "status" => (int)$status
+                "status" => 0,
+                "widgetid" => $id
             ];
         }
 
-        /**
-         * generate widget"s html output
-         * @param mixed $data input data (from getData method)
-         * @return string html code
-         */
-        public function generateOutput($data)
-        {
-            // missing or inactive registrar Module
-            if ($data["status"] === -1) {
-                $gitURL = ISPAPI_REGISTRAR_GIT_URL;
-                $logoURL = ISPAPI_LOGO_URL;
-                return <<<HTML
-                    <div class="widget-content-padded widget-billing">
-                        <div class="color-pink">
-                            Please install or upgrade to the latest HEXONET ISPAPI Registrar Module.
-                            <span data-toggle="tooltip" title="The HEXONET ISPAPI Registrar Module is regularly maintained, download and documentation available at github." class="glyphicon glyphicon-question-sign"></span><br/>
-                            <a href="{$gitURL}">
-                                <img src="{$logoURL}" width="125" height="40"/>
-                            </a>
-                        </div>
-                    </div>
-                HTML;
-            }
+        // fixage requested for given case and item
+        $case = \App::getFromRequest('fixit');
+        $item = \App::getFromRequest('item');
+        if ($case && $item) {
+            return self::fixCase($case, $item);
+        }
 
+        // load status and cases data
+        $status = Setting::getValue($id . "status");
+        $data = [
+            "status" => is_null($status) ? 1 : (int)$status,
+            "widgetid" => $id,
+            "cases" => []
+        ];
+
+        // ignore inactive module or missing dependency
+        if ($data["status"] === 1) {
+            // --- case `wpapicase`
+            self::getDataWPAPICASE($data["cases"]);
+
+            // --- case `tlapicase`
+            self::getDataTLAPICASE($data["cases"]);
+
+            // --- case `migrationcase`
+            self::getDataMIGRATIONCASE($data["cases"]);
+
+            // --- case `registrarrenewalcostpricezerocase`
+            self::getDataREGISTRARRENEWALCOSTPRICEZEROCASE($data["cases"]);
+
+            // --- case `domain2premiumcase`
+            self::getDataDOMAIN2PREMIUMCASE($data["cases"]);
+        }
+
+        /*if (
+            !empty($_REQUEST["refresh"]) // refresh request
+            || !isset($_SESSION[$id]) // Session not yet initialized
+            || (time() > $_SESSION[$id]["expires"]) // data cache expired
+        ) {
+            $_SESSION[$id] = [
+                "expires" => time() + self::$sessionttl,
+                "ttl" =>  + self::$sessionttl,
+                "data" => $data
+            ];
+        }*/
+
+        return $data;
+    }
+
+    /**
+     * generate widget's html output
+     * @param array $data input data (from getData method)
+     * @return string html code
+     */
+    public function generateOutput($data)
+    {
+        // post request handling (fixing cases)
+        if (isset($data["success"])) {
+            return json_encode($data) ?: "[\"success\":false]";
+        }
+
+        // widget controls / status switch
+        // missing or inactive registrar Module
+        if ($data["status"] === -1) {
+            $html = <<<HTML
+                <div class="widget-content-padded widget-billing">
+                    <div class="color-pink">
+                        Please install or upgrade to the latest HEXONET ISPAPI Registrar Module.
+                        <span data-toggle="tooltip" title="The HEXONET ISPAPI Registrar Module is regularly maintained, download and documentation available at github." class="glyphicon glyphicon-question-sign"></span><br/>
+                        <a href="https://github.com/hexonet/whmcs-ispapi-registrar">
+                            <img src="https://raw.githubusercontent.com/hexonet/whmcs-ispapi-registrar/master/modules/registrars/ispapi/logo.png" width="125" height="40"/>
+                        </a>
+                    </div>
+                </div>
+            HTML;
+        } else {
             // show our widget
             $html = "";
             if ($data["status"] === 0) {
@@ -102,58 +167,135 @@ if (!class_exists('WHMCS\Module\Widget\IspapiBaseWidget')) {
                 </div>
                 HTML;
             }
-            // Data Refresh Request -> avoid including JavaScript
-            if (empty($_REQUEST["refresh"])) {
-                $ico = ($data["status"] === 1) ? "on" : "off";
-                $wid = ucfirst($this->widgetid);
-                $html = <<<HTML
-                {$html}
-                <script type="text/javascript">
-                if (!$("#panel${wid} .widget-tools .hx-widget-toggle").length) {
-                    $("#panel${wid} .widget-tools").prepend(
-                        `<a href="#" class="hx-widget-toggle" data-status="${data["status"]}">
-                            <i class=\"fas fa-toggle-${ico}\"></i>
-                        </a>`
-                    );
-                }
-                $("#panel${wid} .hx-widget-toggle").off().on("click", function (event) {
-                    event.preventDefault();
-                    const newstatus = (1 - $(this).data("status"));
-                    const url = WHMCS.adminUtils.getAdminRouteUrl("/widget/refresh&widget=${wid}&status=" + newstatus)
-                    WHMCS.http.jqClient.post(url, function (json) {
-                        if (json.success && (JSON.parse(json.widgetOutput)).success) {
-                            window.location.reload(); // widget refresh doesn't update the height
-                        }
-                    }, 'json');
-                });
-                </script>
-                HTML;
-            }
 
+            // Data Refresh Request -> avoid including JavaScript
+            // $expires = $_SESSION[$data["widgetid"]]["expires"] - time();
+            // $ttl = $_SESSION[$data["widgetid"]]["ttl"];
+            $ico = ($data["status"] === 1) ? "on" : "off";
+            $wid = $data["widgetid"];
+            $status = $data["status"];
+            $html .= <<<HTML
+            <script type="text/javascript">
+            // fn shared with other widgets
+            function hxRefreshWidget(widgetName, requestString, cb) {
+                const panelBody = $('.panel[data-widget="' + widgetName + '"] .panel-body');
+                const url = WHMCS.adminUtils.getAdminRouteUrl('/widget/refresh&widget=' + widgetName + '&' + requestString);
+                panelBody.addClass('panel-loading');
+                return WHMCS.http.jqClient.post(url, function(data) {
+                    panelBody.html(data.widgetOutput);
+                    panelBody.removeClass('panel-loading');
+                }, 'json').always(cb);
+            }
+            if (!$("#panel${wid} .widget-tools .hx-widget-toggle").length) {
+                $("#panel${wid} .widget-tools").prepend(
+                    `<a href="#" class="hx-widget-toggle" data-status="${status}">
+                        <i class=\"fas fa-toggle-${ico}\"></i>
+                    </a>`
+                );
+            } else {
+                $("a.hx-widget-toggle").data("status", {$status});
+            }
+            $("#panel${wid} .hx-widget-toggle").off().on("click", function (event) {
+                event.preventDefault();
+                const icon = $(this).find("i[class^=\"fas fa-toggle-\"]");
+                const mythis = this;
+                const widget = $(this).closest('.panel').data('widget');
+                const newstatus = (1 - $(this).data("status"));
+                icon.attr("class", "fas fa-spinner fa-spin");
+                hxRefreshWidget(widget, "refresh=1&status=" + newstatus, function(){
+                    icon.attr("class", "fas fa-toggle-" + ((newstatus === 0) ? "off" : "on"));
+                    $(mythis).data("status", newstatus);
+                    packery.fit(mythis);
+                    packery.shiftLayout();
+                })
+            });
+            </script>
+            HTML;
+        }
+
+        // Missing Registrar Module (-1)
+        // Inactive Widget (0)
+        if ($data["status"] !== 1) {
             return $html;
         }
+
+        // generate HTML
+        if (empty($data["cases"])) {
+            $html .= <<<HTML
+                <div class="widget-content-padded widget-billing">
+                    <div class="item text-center">
+                        <div class="data color-green">No issues detected.</div>
+                        <div class="note">Check Result</div>
+                    </div>
+                </div>
+                HTML;
+        } else {
+            $output = "";
+            foreach ($data["cases"] as $key => $rows) {
+                $output .= self::getCaseBlock($key, $rows);
+            }
+
+            $html .= <<<HTML
+            <div class="widget-content-padded ispapi-monitoring-items"><br/><br/>{$output}</div>
+            <div class="modal fade" id="monitModal" tabindex="-1" role="dialog" aria-labelledby="monitModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="monitModalLabel"></h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="monitModalForm">
+                    <div class="form-group">
+                        <label for="recipient-name" class="col-form-label">Details:</label>
+                        <p class="description"></p>
+                    </div>
+                    </form>
+                    <div class="progress" id="monitModalPgb" style="display:none">
+                        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="0">0%</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="monitModalDismiss">Close</button>
+                    <a class="btn btn-primary" id="monitModalDownload" download="export.csv">CSV</a>
+                    <button type="button" class="btn btn-primary" id="monitModalSubmit">Fix this!</button>
+                </div>
+                </div>
+            </div>
+            </div>
+            HTML;
+        }
+
+        if (!empty($_REQUEST["refresh"])) {
+            return $html;
+        }
+
+        return <<<HTML
+            {$html}
+            <script type="text/javascript">
+            $('#monitModal').off().on('show.bs.modal', function (event) {
+                $('#monitModalPgb').css('display', 'none')
+                const button = $(event.relatedTarget)
+                const modal = $(this)
+                const itemsArr = button.data('items').split(', ')
+                modal.find('.modal-title').html(button.data('label'))
+                modal.find('.modal-body p.description').html(button.data('descr'))
+                $('#monitModalSubmit').off().click(function () {
+                    processItems(button.data('case'), itemsArr)
+                })
+                $('#monitModalDownload').attr(
+                    'href',
+                    'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
+                )
+            })
+            $('#monitModal').on('hidden.bs.modal', function (event) {
+                refreshWidget('IspapiMonitoringWidget', 'refresh=1')
+            })
+            </script>
+        HTML;
     }
-}
-
-/**
- * ISPAPI Monitoring Widget.
- */
-class IspapiMonitoringWidget extends IspapiBaseWidget
-{
-    protected $title = 'HEXONET ISPAPI Domain Monitoring';
-    protected $description = '';
-    protected $weight = 150;
-    protected $columns = 1;
-    protected $cache = false;
-    protected $cacheExpiry = 120;
-    protected $requiredPermission = '';
-    const VERSION = "1.8.0";
-
-    public function __construct()
-    {
-        parent::__construct("ispapiMonitoringWidget");
-    }
-
     /**
      * add generic parameters to domain list command and request to API
      * @static
@@ -181,10 +323,10 @@ class IspapiMonitoringWidget extends IspapiBaseWidget
             "COMMAND" => "QueryDomainList",
             "X-ACCEPT-WHOISTRUSTEE-TAC" => 1
         ]);
-        if ($r["CODE"] !== "200" || !$r["PROPERTY"]["COUNT"][0]) {
+        if ($r["CODE"] !== "200" || $r["PROPERTY"]["COUNT"][0] <= 0) {
             return [];
         }
-        return $r["PROPERTY"]["DOMAIN"];
+        return $r["PROPERTY"]["OBJECTID"];
     }
 
     /**
@@ -218,7 +360,7 @@ class IspapiMonitoringWidget extends IspapiBaseWidget
         if ($r["CODE"] !== "200" || !$r["PROPERTY"]["COUNT"][0]) {
             return [];
         }
-        return $r["PROPERTY"]["DOMAIN"];
+        return $r["PROPERTY"]["OBJECTID"];
     }
 
     /**
@@ -622,153 +764,10 @@ EOF;
             $data["domain2premiumcase"] = $items;
         }
     }
-
-    /**
-     * Fetch data that will be provided to generateOutput method
-     * @return array|null data array or null in case of an error
-     */
-    public function getData()
-    {
-        if (!class_exists(Ispapi::class)) {
-            // @codeCoverageIgnoreStart
-            return [
-                "status" => -1
-            ];
-            // @codeCoverageIgnoreEnd
-        }
-
-        // fixage requested for given case and item
-        $case = \App::getFromRequest('fixit');
-        $item = \App::getFromRequest('item');
-        if ($case && $item) {
-            return self::fixCase($case, $item);
-        }
-
-        // load status and cases data
-        $data = array_merge(
-            parent::getData(),
-            ["cases" => []]
-        );
-        // --- case `wpapicase`
-        self::getDataWPAPICASE($data["cases"]);
-
-        // --- case `tlapicase`
-        self::getDataTLAPICASE($data["cases"]);
-
-        // --- case `migrationcase`
-        self::getDataMIGRATIONCASE($data["cases"]);
-
-        // --- case `registrarrenewalcostpricezerocase`
-        self::getDataREGISTRARRENEWALCOSTPRICEZEROCASE($data["cases"]);
-
-        // --- case `domain2premiumcase`
-        self::getDataDOMAIN2PREMIUMCASE($data["cases"]);
-
-        return $data;
-    }
-
-    /**
-     * generate widget's html output
-     * @param array $data input data (from getData method)
-     * @return string html code
-     */
-    public function generateOutput($data)
-    {
-        // post request handling
-        if (isset($data["success"])) {
-            return json_encode($data) ?: "[\"success\":false]";
-        }
-
-        // widget controls / status switch
-        $html = parent::generateOutput($data);
-
-        // Missing Registrar Module (-1)
-        // Inactive Widget (0)
-        if ($data["status"] !== 1) {
-            return $html;
-        }
-
-        // generate HTML
-        if (empty($data["cases"])) {
-            $html .= <<<HTML
-                <div class="widget-content-padded widget-billing">
-                    <div class="item text-center">
-                        <div class="data color-green">No issues detected.</div>
-                        <div class="note">Check Result</div>
-                    </div>
-                </div>
-                HTML;
-        } else {
-            $output = "";
-            foreach ($data["cases"] as $key => $rows) {
-                $output .= self::getCaseBlock($key, $rows);
-            }
-
-            $html .= <<<HTML
-            <div class="widget-content-padded ispapi-monitoring-items"><br/><br/>{$output}</div>
-            <div class="modal fade" id="monitModal" tabindex="-1" role="dialog" aria-labelledby="monitModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="monitModalLabel"></h2>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="monitModalForm">
-                    <div class="form-group">
-                        <label for="recipient-name" class="col-form-label">Details:</label>
-                        <p class="description"></p>
-                    </div>
-                    </form>
-                    <div class="progress" id="monitModalPgb" style="display:none">
-                        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="0">0%</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal" id="monitModalDismiss">Close</button>
-                    <a class="btn btn-primary" id="monitModalDownload" download="export.csv">CSV</a>
-                    <button type="button" class="btn btn-primary" id="monitModalSubmit">Fix this!</button>
-                </div>
-                </div>
-            </div>
-            </div>
-            HTML;
-        }
-
-        if (!empty($_REQUEST["refresh"])) {
-            return $html;
-        }
-
-        return <<<HTML
-        {$html}
-        <script type="text/javascript">
-        $('#monitModal').off().on('show.bs.modal', function (event) {
-            $('#monitModalPgb').css('display', 'none')
-            const button = $(event.relatedTarget)
-            const modal = $(this)
-            const itemsArr = button.data('items').split(', ')
-            modal.find('.modal-title').html(button.data('label'))
-            modal.find('.modal-body p.description').html(button.data('descr'))
-            $('#monitModalSubmit').off().click(function () {
-                processItems(button.data('case'), itemsArr)
-            })
-            $('#monitModalDownload').attr(
-                'href',
-                'data:application/csv;charset=utf-8,' + encodeURIComponent(itemsArr.join('\\r\\n'))
-            )
-        })
-        $('#monitModal').on('hidden.bs.modal', function (event) {
-            refreshWidget('IspapiMonitoringWidget', 'refresh=1')
-        })
-        </script>
-        HTML;
-    }
 }
 
 // @codeCoverageIgnoreStart
-add_hook('AdminAreaHeadOutput', 1, function () {
+add_hook("AdminAreaHeadOutput", 1, function ($vars) {
     if ($vars["pagetitle"] === "Dashboard") {
         return <<<HTML
             <script>
