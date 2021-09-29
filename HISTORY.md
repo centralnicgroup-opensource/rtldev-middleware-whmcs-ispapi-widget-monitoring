@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.8.0...v1.8.1) (2021-09-29)
+
+
+### Bug Fixes
+
+* **oop, ttfb, data queries:** reviewed and fixed ([2aaadac](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/2aaadacf1ba154d6ca20d2c0b3df07408e50e47e))
+
 # [1.8.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.7.1...v1.8.0) (2021-09-22)
 
 
