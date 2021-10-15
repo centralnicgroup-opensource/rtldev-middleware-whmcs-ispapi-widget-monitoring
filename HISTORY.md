@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.8.1...v1.8.2) (2021-10-15)
+
+
+### Bug Fixes
+
+* **idprotection:** domains where wrongly identified with inactive idprotection setting in WHMCS ([9b81e70](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/9b81e7062f8a4cb25d4418996995623cde441340))
+
 ## [1.8.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.8.0...v1.8.1) (2021-09-29)
 
 
