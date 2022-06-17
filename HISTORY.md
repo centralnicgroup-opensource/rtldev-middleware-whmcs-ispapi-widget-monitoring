@@ -1,3 +1,15 @@
+# [1.9.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.8.2...v1.9.0) (2022-06-17)
+
+
+### Bug Fixes
+
+* **premium domain data:** fixation of data extended ([c15fdae](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/c15fdaeee7eed61360b37ceacd531434ba33b81f))
+
+
+### Features
+
+* **missing premium data:** extended premium domain data fixation ([6e35c68](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/6e35c68a8d3b755bd2f3d2091c3df4ee4a7322ec))
+
 ## [1.8.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.8.1...v1.8.2) (2021-10-15)
 
 
