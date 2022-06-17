@@ -101,8 +101,8 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
             // --- case `migrationcase`
             self::getDataMIGRATIONCASE($data["cases"]);
 
-            // --- case `registrarrenewalcostpricezerocase`
-            self::getDataREGISTRARRENEWALCOSTPRICEZEROCASE($data["cases"]);
+            // --- case `registrarpremiumdataincomplete`
+            self::getDataREGISTRARPREMIUMDATAINCOMPLETE($data["cases"]);
 
             // --- case `domain2premiumcase`
             self::getDataDOMAIN2PREMIUMCASE($data["cases"]);
@@ -419,11 +419,11 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
                 "descr" => "We found <b>{$count} {$label}</b> with migration process related additional notes. Our whmcs-based migration tool uses the additional notes field for processing that can be cleaned up for domains in status active. Usually you'll find additional notes set to INIT_TRANSFER_FAIL or INIT_TRANSFER_SUCCESS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to process the cleanup."
             ];
         }
-        if ($case === "registrarrenewalcostpricezerocase") {
+        if ($case === "registrarpremiumdomaindataincomplete") {
             $label = "Premium Domain" . ($singular ? "" : "s");
             return [
-                "label" => "<b>{$label} found with missing Premium Renewal Cost Price in DB.</b>",
-                "descr" => "We found <b>{$count} {$label}</b> with missing Premium Renewal Cost Price in DB. There had been a WHMCS Core Bug that got patched around WHMCS v7.8. It also affected our High-Performance Domainchecker Add-On's Premium Domain Handling."
+                "label" => "<b>{$label} found with incomplete Premium Data in DB.</b>",
+                "descr" => "We found <b>{$count} {$label}</b> with incomplete Premium Data in DB. There had been a WHMCS Core Bug that got patched around WHMCS v7.8. Alternatively, the underlying Registry Provider might have upgraded your Domain Name from Regular to Premium."
             ];
         }
         if ($case === "domain2premiumcase") {
@@ -541,12 +541,12 @@ EOF;
     }
 
     /**
-     * fix single item of case `registrarrenewalcostpricezerocase`: premium domain name with missing registrarRenewalCost in tbldomains_extra
+     * fix single item of case `registrarpremiumdataincomplete`: premium domain name with inclomplete data in tbldomains_extra
      * @static
      * @param String $item punycode domain name to fix
      * @return array result
      */
-    private static function fixREGISTRARRENEWALCOSTPRICEZEROCASE($item)
+    private static function fixREGISTRARPREMIUMDATAINCOMPLETE($item)
     {
         $params = getregistrarconfigoptions("ispapi");
         $prices = ispapi_GetPremiumPrice(array_merge($params, ["domain" => $item]));
@@ -569,7 +569,7 @@ EOF;
         return [
             "success" => $success,
             "msg" => ("Case " . (($success) ? "fixed" : "still open")),
-            "case" => "registrarrenewalcostpricezerocase",
+            "case" => "registrarpremiumdataincomplete",
             "item" => $item
         ];
     }
@@ -722,25 +722,35 @@ EOF;
     }
 
     /**
-     * get data for case "registrarrenewalcostpricezerocase": all premium domain names with missing registrarRenewalCost in tbldomains_extra
+     * get data for case "registrarpremiumdataincompletecase": all premium domain names with missing registrarRenewalCost in tbldomains_extra
      * @static
      * @param array $data data container
      * @return array updated data container
      */
-    private static function getDataREGISTRARRENEWALCOSTPRICEZEROCASE(&$data)
+    private static function getDataREGISTRARPREMIUMDATAINCOMPLETECASE(&$data)
     {
         $domainsWHMCS = self::getActiveDomainsWHMCS();
         $items = [];
         foreach ($domainsWHMCS as $c => $d) {
             if ($d["is_premium"] === 1) {
-                $recurringamount = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarRenewalCostPrice")->value("value");
-                if (is_null($recurringamount)) {
+                $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarRenewalCostPrice")->value("value");
+                if (is_null($val)) {
                     $items[] = $c;
+                } else {
+                    $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarCurrency")->value("value");
+                    if (is_null($val)) {
+                        $items[] = $c;
+                    } else {
+                        $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarCostPrice")->value("value");
+                        if (is_null($val)) {
+                            $items[] = $c;
+                        }
+                    }
                 }
             }
         }
         if (!empty($items)) {
-            $data["registrarrenewalcostpricezerocase"] = $items;
+            $data["registrarpremiumdataincomplete"] = $items;
         }
     }
 
