@@ -101,8 +101,8 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
             // --- case `migrationcase`
             self::getDataMIGRATIONCASE($data["cases"]);
 
-            // --- case `registrarpremiumdataincomplete`
-            self::getDataREGISTRARPREMIUMDATAINCOMPLETE($data["cases"]);
+            // --- case `registrarpremiumdataincompletecase`
+            self::getDataREGISTRARPREMIUMDATAINCOMPLETECASE($data["cases"]);
 
             // --- case `domain2premiumcase`
             self::getDataDOMAIN2PREMIUMCASE($data["cases"]);
@@ -419,11 +419,11 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
                 "descr" => "We found <b>{$count} {$label}</b> with migration process related additional notes. Our whmcs-based migration tool uses the additional notes field for processing that can be cleaned up for domains in status active. Usually you'll find additional notes set to INIT_TRANSFER_FAIL or INIT_TRANSFER_SUCCESS.<br/><br/>Use the button &quot;CSV&quot; to download the list of affected items and use the below button &quot;Fix this!&quot; to process the cleanup."
             ];
         }
-        if ($case === "registrarpremiumdomaindataincomplete") {
+        if ($case === "registrarpremiumdataincompletecase") {
             $label = "Premium Domain" . ($singular ? "" : "s");
             return [
                 "label" => "<b>{$label} found with incomplete Premium Data in DB.</b>",
-                "descr" => "We found <b>{$count} {$label}</b> with incomplete Premium Data in DB. There had been a WHMCS Core Bug that got patched around WHMCS v7.8. Alternatively, the underlying Registry Provider might have upgraded your Domain Name from Regular to Premium."
+                "descr" => "We found <b>{$count} {$label}</b> with incomplete Premium Data in DB. The root cause of this is either that the underlying registry provider ugpraded the domain names in question from regular to premium or it is related to a former WHMCS Core Bug that got patched around WHMCS v7.8."
             ];
         }
         if ($case === "domain2premiumcase") {
@@ -541,12 +541,12 @@ EOF;
     }
 
     /**
-     * fix single item of case `registrarpremiumdataincomplete`: premium domain name with inclomplete data in tbldomains_extra
+     * fix single item of case `registrarpremiumdataincompletecase`: premium domain name with missing registrarRenewalCost in tbldomains_extra
      * @static
      * @param String $item punycode domain name to fix
      * @return array result
      */
-    private static function fixREGISTRARPREMIUMDATAINCOMPLETE($item)
+    private static function fixREGISTRARPREMIUMDATAINCOMPLETECASE($item)
     {
         $params = getregistrarconfigoptions("ispapi");
         $prices = ispapi_GetPremiumPrice(array_merge($params, ["domain" => $item]));
@@ -559,17 +559,42 @@ EOF;
         $id = (is_object($domain)) ? $domain->id : $domain["id"];
         $success = false;
         if (!empty($prices)) {
+            $currencyid = DB::table("tblcurrencies")->where("code", "=", $prices["CurrencyCode"])->value("id");
+            if (is_null($currencyid)) {
+                return [
+                    "success" => false,
+                    "msg" => ("Case still open. Currency " . $prices["CurrencyCode"] . " not configured."),
+                    "case" => "registrarpremiumdataincompletecase",
+                    "item" => $item
+                ];
+            }
             $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
                 "domain_id" => $id,
-                "name" => "registrarRenewalCostPrice"
+                "name" => "registrarCurrency"
             ]);
-            $extraDetails->value = $prices["renew"];
+            $extraDetails->value = $currencyid;
             $success = $extraDetails->save();
+            if ($success) {
+                $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
+                    "domain_id" => $id,
+                    "name" => "registrarCostPrice"
+                ]);
+                $extraDetails->value = $prices["transfer"];
+                $success = $extraDetails->save();
+                if ($success) {
+                    $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
+                        "domain_id" => $id,
+                        "name" => "registrarRenewalCostPrice"
+                    ]);
+                    $extraDetails->value = $prices["renew"];
+                    $success = $extraDetails->save();
+                }
+            }
         }
         return [
             "success" => $success,
             "msg" => ("Case " . (($success) ? "fixed" : "still open")),
-            "case" => "registrarpremiumdataincomplete",
+            "case" => "registrarpremiumdataincompletecase",
             "item" => $item
         ];
     }
@@ -736,21 +761,22 @@ EOF;
                 $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarRenewalCostPrice")->value("value");
                 if (is_null($val)) {
                     $items[] = $c;
-                } else {
-                    $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarCurrency")->value("value");
-                    if (is_null($val)) {
-                        $items[] = $c;
-                    } else {
-                        $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarCostPrice")->value("value");
-                        if (is_null($val)) {
-                            $items[] = $c;
-                        }
-                    }
+                    continue;
+                }
+                $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarCostPrice")->value("value");
+                if (is_null($val)) {
+                    $items[] = $c;
+                    continue;
+                }
+                $val = \WHMCS\Domain\Extra::whereDomainId($d["id"])->whereName("registrarCurrency")->value("value");
+                if (is_null($val)) {
+                    $items[] = $c;
+                    continue;
                 }
             }
         }
         if (!empty($items)) {
-            $data["registrarpremiumdataincomplete"] = $items;
+            $data["registrarpremiumdataincompletecase"] = $items;
         }
     }
 
