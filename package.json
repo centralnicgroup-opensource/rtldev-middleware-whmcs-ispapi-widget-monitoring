@@ -51,8 +51,7 @@
     "semantic-release": "^19.0.3"
   },
   "scripts": {
-    "phpCompatibility": "./scripts/phpcompatibility.sh",
-    "codeCheck": "phpcs --standard=PSR12 -s -q -n --colors ispapi_monitoring.php",
-    "codeFix": "phpcbf --standard=PSR12 -q ispapi_monitoring.php"
+    "codeCheck": "phpcs --standard=PSR12 -s -q -n --colors modules/widgets/ispapi_monitoring.php",
+    "codeFix": "phpcbf --standard=PSR12 -q modules/widgets/ispapi_monitoring.php"
   }
 }

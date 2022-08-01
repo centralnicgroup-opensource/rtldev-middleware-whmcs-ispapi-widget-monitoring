@@ -18,6 +18,7 @@ use App;
 use Illuminate\Database\Capsule\Manager as DB;
 use WHMCS\Module\Registrar\Ispapi\Ispapi;
 use WHMCS\Config\Setting;
+use WHMCS\Domains\DomainLookup\SearchResult as SR;
 
 /**
  * ISPAPI Monitoring Widget.
@@ -556,9 +557,13 @@ EOF;
             "status" => "Active",
             "is_premium" => 1
         ])->first();
-        $id = (is_object($domain)) ? $domain->id : $domain["id"];
+        if (is_object($domain)) {
+            $domain = json_decode(json_encode($domain), true);
+        }
+
         $success = false;
         if (!empty($prices)) {
+            // check if registrar currency is supported
             $currencyid = DB::table("tblcurrencies")->where("code", "=", $prices["CurrencyCode"])->value("id");
             if (is_null($currencyid)) {
                 return [
@@ -568,27 +573,66 @@ EOF;
                     "item" => $item
                 ];
             }
-            $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
-                "domain_id" => $id,
-                "name" => "registrarCurrency"
+            // use whmcs search result for price calculation
+            list($sld, $tld) = explode(".", $item, 2);
+            $success = self::updOrAddDomainExtraBulk($domain["id"], [
+                "registrarCurrency" => $currencyid,
+                "registrarCostPrice" => $prices["transfer"],
+                "registrarRenewalCostPrice" => $prices["renew"]
             ]);
-            $extraDetails->value = $currencyid;
-            $success = $extraDetails->save();
             if ($success) {
-                $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
-                    "domain_id" => $id,
-                    "name" => "registrarCostPrice"
+                // WHMCS #TIF-284026: update recurring amount
+                // registrarRenewalCostPrice + configured Markup + Domain Addon Prices
+                // ofuncts.php::1400
+                $recurringamount = $prices["renew"];
+                $hookReturns = run_hook("PremiumPriceRecalculationOverride", [
+                    "domainName" => $item,
+                    "tld" => $tld,
+                    "sld" => $sld,
+                    "renew" => $recurringamount // without markup!
                 ]);
-                $extraDetails->value = $prices["transfer"];
-                $success = $extraDetails->save();
-                if ($success) {
-                    $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
-                        "domain_id" => $id,
-                        "name" => "registrarRenewalCostPrice"
-                    ]);
-                    $extraDetails->value = $prices["renew"];
-                    $success = $extraDetails->save();
+                $skipMarkup = false;
+                foreach ($hookReturns as $hookReturn) {
+                    if (array_key_exists("renew", $hookReturn)) {
+                        $recurringamount = $hookReturn["renew"];
+                    }
+                    if (
+                        array_key_exists("skipMarkup", $hookReturn)
+                        && $hookReturn["skipMarkup"] === true
+                    ) {
+                        $skipMarkup = true;
+                    }
                 }
+
+                if (!$skipMarkup) {
+                    $markup = \WHMCS\Domains\Pricing\Premium::markupForCost($recurringamount);
+                    $recurringamount *= 1 + $markup / 100;
+                }
+                $data = DB::table("tblpricing")
+                    ->where("type", "=", "domainaddons")
+                    ->where("currency", "=", $currencyid)
+                    ->where("relid", "=", 0) // domainaddons
+                    ->first();
+                if (is_object($data)) {
+                    $data = json_decode(json_encode($data), true);
+                }
+                if ($domain["dnsmanagement"]) {
+                    $recurringamount += $data["msetupfee"];
+                }
+                if ($domain["emailforwarding"]) {
+                    $recurringamount += $data["qsetupfee"];
+                }
+                if ($domain["idprotection"]) {
+                    $recurringamount += $data["ssetupfee"];
+                }
+                /*
+                if ($promoid) {
+                    $recurringamount -= recalcPromoAmount("D." . $domainparts[1], $userid, $id, $regperiod . "Years", $recurringamount, $promoid);
+                }
+                */
+                DB::table("tbldomains")->where("id", "=", $domain["id"])->update([
+                    "recurringamount" => $recurringamount
+                ]);
             }
         }
         return [
@@ -597,6 +641,41 @@ EOF;
             "case" => "registrarpremiumdataincompletecase",
             "item" => $item
         ];
+    }
+    /**
+     * bulk update or add domain extra data for given domain
+     * @static
+     * @param int $domainid id of the domain
+     * @param array $arr associative array (field name => field value)
+     * @return bool
+     */
+    private static function updOrAddDomainExtraBulk($domainid, $arr)
+    {
+        $success = false;
+        foreach ($arr as $name => $value) {
+            $success = self::updOrAddDomainExtra($domainid, $name, $value);
+            if (!$success) {
+                break;
+            }
+        }
+        return $success;
+    }
+    /**
+     * update or add domain extra data for given domain
+     * @static
+     * @param int $domainid id of the domain
+     * @param String $name name of the extra data field
+     * @param mixed $value value of the extra data field
+     * @return bool
+     */
+    private static function updOrAddDomainExtra($domainid, $name, $value)
+    {
+        $extraDetails = \WHMCS\Domain\Extra::firstOrNew([
+            "domain_id" => $domainid,
+            "name" => $name
+        ]);
+        $extraDetails->value = $value;
+        return $extraDetails->save();
     }
 
     /**
