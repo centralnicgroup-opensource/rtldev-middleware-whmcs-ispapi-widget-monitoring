@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.9.0...v1.9.1) (2022-09-23)
+
+
+### Bug Fixes
+
+* **premium domains:** include updating recurring amount ([c8c6c87](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/c8c6c87e0a5a6e15404ad3f5b877ae0efc973ccf))
+
 # [1.9.0](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.8.2...v1.9.0) (2022-06-17)
 
 
