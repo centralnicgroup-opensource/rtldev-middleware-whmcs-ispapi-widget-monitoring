@@ -34,7 +34,7 @@ class IspapiMonitoringWidget extends \WHMCS\Module\AbstractWidget
     protected $requiredPermission = '';
     public static $widgetid = "IspapiMonitoringWidget";
     // public static $sessionttl = 24 * 3600; // 1d
-    const VERSION = "1.9.1";
+    const VERSION = "1.9.2";
 
     /**
      * Fetch data that will be provided to generateOutput method

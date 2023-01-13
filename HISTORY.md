@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.9.1...v1.9.2) (2023-01-13)
+
+
+### Bug Fixes
+
+* **semantic-release:** no upgrade necessary (just internal update of semantic-release to v20) ([628b0a2](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/commit/628b0a237bf2b9b1d74afa42a2596a5dd27cf305))
+
 ## [1.9.1](https://github.com/hexonet/whmcs-ispapi-widget-monitoring/compare/v1.9.0...v1.9.1) (2022-09-23)
 
 
